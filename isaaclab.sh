@@ -104,7 +104,7 @@ install_isaaclab_extension() {
     # if the directory contains setup.py then install the python module
     if [ -f "$1/setup.py" ]; then
         echo -e "\t module: $1"
-        ${python_exe} -m pip install --editable $1
+        ${python_exe} -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --editable $1
     fi
 }
 
@@ -281,7 +281,7 @@ while [[ $# -gt 0 ]]; do
                 shift # past argument
             fi
             # install the rl-frameworks specified
-            ${python_exe} -m pip install -e ${ISAACLAB_PATH}/source/extensions/omni.isaac.lab_tasks["${framework_name}"]
+            ${python_exe} -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -e ${ISAACLAB_PATH}/source/extensions/omni.isaac.lab_tasks["${framework_name}"]
 
             # check if we are inside a docker container or are building a docker image
             # in that case don't setup VSCode since it asks for EULA agreement which triggers user interaction
@@ -324,7 +324,7 @@ while [[ $# -gt 0 ]]; do
             # check if pre-commit is installed
             if [ ! command -v pre-commit &>/dev/null ]; then
                 echo "[INFO] Installing pre-commit..."
-                pip install pre-commit
+                pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pre-commit
             fi
             # always execute inside the Isaac Lab directory
             echo "[INFO] Formatting the repository..."
@@ -388,7 +388,7 @@ while [[ $# -gt 0 ]]; do
             python_exe=$(extract_python_exe)
             # install pip packages
             cd ${ISAACLAB_PATH}/docs
-            ${python_exe} -m pip install -r requirements.txt > /dev/null
+            ${python_exe} -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt > /dev/null
             # build the documentation
             ${python_exe} -m sphinx -b html -d _build/doctrees . _build/html
             # open the documentation
