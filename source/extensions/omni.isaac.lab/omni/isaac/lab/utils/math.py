@@ -1302,3 +1302,22 @@ def sample_cylinder(
     xyz[..., 2].uniform_(h_min, h_max)
     # return positions
     return xyz
+
+@torch.jit.script
+def yaw_angle(quat: torch.Tensor) -> torch.Tensor:
+    """Extract the yaw component of a quaternion.
+
+    Args:
+        quat: The orientation in (w, x, y, z). Shape is (..., 4)
+
+    Returns:
+        A angle with only yaw component.
+    """
+    shape = quat.shape
+    quat_yaw = quat.clone().view(-1, 4)
+    qw = quat_yaw[:, 0]
+    qx = quat_yaw[:, 1]
+    qy = quat_yaw[:, 2]
+    qz = quat_yaw[:, 3]
+    yaw = torch.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz))
+    return yaw

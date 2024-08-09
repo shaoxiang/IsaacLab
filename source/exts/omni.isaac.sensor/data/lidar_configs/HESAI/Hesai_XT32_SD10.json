@@ -1,0 +1,51 @@
+{
+    "_comment2": "parameters obtained from XT32_User_Manual_X01-en-220410.pdf from https://www.hesaitech.com/en/download",
+    "_comment3": "parameters without comments are assumed correct, but will ultimately need checking",
+    "class": "sensor",
+    "type": "lidar",
+    "name": "XT-32 10hz", "_comment0": "Hesai XT-32 configured for standard at 10Hz",
+    "driveWorksId": "GENERIC", "_comment1": "Using generic, because no LidarDWId in drivesim-ov/include/omni/sensors/lidar/LidarProfileTypes.h",
+    "profile":
+    {
+        "scanType": "rotary",
+        "intensityProcessing": "normalization",
+        "rayType": "IDEALIZED",
+        "nearRangeM": 0.05, "_comment4": "p.13 Instrument Range 0.05-120m",
+        "minDistBetweenEchos": 0.05,
+        "farRangeM": 120.0,
+
+        "rangeResolutionM": 0.004, "_comment7": "p.32 Header->Dis Unit 4mm",
+
+        "rangeAccuracyM": 0.02, "_comment8": "p.13 Range Accuracy ±2 cm (standard)",
+
+        "avgPowerW": 0.002,
+        "minReflectance": 0.1,  "_comment9": "p.13 Range Capability ① 80 m @10% reflectivity (Channels 9 to 24)",
+        "minReflectanceRange": 80.0, "_commentA": "p13 50 m @10% (Channels 1 to 8, 25 to 32) DON'T know how to deal with different channels having different lasers!!!!",
+        "wavelengthNm": 905.0, "_commentB": "p.13 Wavelength 905 nm",
+        "pulseTimeNs": 10,
+
+        "azimuthErrorMean": 0.0,
+        "azimuthErrorStd": 0.015,
+        "elevationErrorMean": 0.0,
+        "elevationErrorStd": 0.0000,
+
+        "maxReturns": 2,
+
+        "scanRateBaseHz": 10.0,
+
+        "reportRateBaseHz": 20000, "_commentC": "p.13 10Hz * angle (360°)/ horizontal resolution (0.18°) ",
+
+        "numberOfEmitters": 32,
+
+        "emitters":
+        {
+          "_commentD": "Firing Time offset of each channel, p.74",
+          "azimuthDeg": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ],
+          "elevationDeg": [15.0 ,14.0 ,13.0 ,12.0 ,11.0 ,10.0 ,9.0 ,8.0 ,7.0 ,6.0 ,5.0 ,4.0 ,3.0 ,2.0 ,1.0 ,0.0 ,-1.0 ,-2.0 ,-3.0 ,-4.0 ,-5.0 ,-6.0 ,-7.0 ,-8.0 ,-9.0 ,-10.0 ,-11.0 ,-12.0 ,-13.0 ,-14.0 ,-15.0 ,-16.0 ],
+          "fireTimeNs": [368, 1880, 3392, 4904, 6416, 7928, 9440, 10952, 12464, 13976, 15488, 17000, 18512, 20024, 21536, 23048, 24560, 26072, 27584, 29096, 30608, 32120, 33632, 35144, 36656, 38168, 39680, 41192, 42704, 44216, 45728, 47240]
+        },
+
+        "intensityMappingType": "LINEAR"
+    }
+}
+

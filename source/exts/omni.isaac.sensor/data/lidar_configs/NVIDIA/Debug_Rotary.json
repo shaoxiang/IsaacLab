@@ -1,0 +1,49 @@
+{
+    "class": "sensor",
+    "type": "lidar",
+    "name": "Debug Rotary",
+    "driveWorksId": "GENERIC",
+    "profile":
+    {
+        "scanType": "rotary",
+        "intensityProcessing": "normalization",
+        "rayType": "IDEALIZED",
+        "nearRangeM": 0.05,
+        "minDistBetweenEchos": 0.05,
+        "farRangeM": 200.0,
+
+        "rangeResolutionM": 0.004,
+
+        "rangeAccuracyM": 0.004,
+
+        "avgPowerW": 0.0092,
+        "minReflectance": 0.1,
+        "minReflectanceRange": 9.0,
+        "wavelengthNm": 845.0,
+        "pulseTimeNs": 4,
+
+        "azimuthErrorMean": 0.0,
+        "azimuthErrorStd": 0.025,
+        "elevationErrorMean": 0.0,
+        "elevationErrorStd": 0.0000,
+
+
+        "maxReturns": 2,
+
+        "scanRateBaseHz": 6.0,
+
+        "reportRateBaseHz": 216, "_commentC": "36 * 6",
+
+        "numberOfEmitters": 1,
+
+        "emitters":
+        {
+          "azimuthDeg": [0],
+          "elevationDeg": [0],
+          "fireTimeNs": [0]
+        },
+
+        "intensityMappingType": "LINEAR"
+    }
+}
+

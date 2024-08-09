@@ -1,0 +1,31 @@
+{
+    "IsaacPrintRTXLidarInfo": {
+        "version": 1,
+        "icon": "icons/isaac-sim.svg",
+        "language": "Python",
+        "description": [
+            "process and print the raw RTX lidar data"
+        ],
+        "metadata": {
+            "uiName": "Isaac Print RTX Lidar Info"
+        },
+        "categoryDefinitions": "config/CategoryDefinition.json",
+        "categories": "isaacSensor",
+        "inputs": {
+            "exec": {
+                "type": "execution",
+                "description": "The input execution port"
+            },
+            "dataPtr":{
+                "type": "uint64",
+                "description": "Pointer to LiDAR render result",
+                "uiName": "LiDAR render result"
+            },
+            "testMode":{
+                "type": "bool",
+                "description": "Print less for benchmark tests",
+                "uiName": "Test Mode prints less"
+            }
+        }
+    }
+}

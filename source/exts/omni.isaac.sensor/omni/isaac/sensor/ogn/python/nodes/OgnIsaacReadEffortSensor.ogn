@@ -1,0 +1,60 @@
+{
+    "IsaacReadEffortSensor": {
+        "version": 1,
+        "icon": "icons/isaac-sim.svg",        
+        "description": "Node that reads out joint effort values",
+        "language": "Python",
+        "categoryDefinitions": "config/CategoryDefinition.json",
+        "categories": "isaacSensor",
+        "metadata": {
+            "uiName": "Isaac Read Effort Node"
+        },
+        "inputs": {
+            "execIn": {
+                "type": "execution",
+                "description": "The input execution port"
+            },            
+            "prim": {
+                "type": "target",
+                "description": "Path to the joint getting measured",
+                "metadata": {
+                    "uiName": "Prim Path"
+                }
+            },
+            "useLatestData": {
+                "type": "bool",
+                "description": "True to use the latest data from the physics step, False to use the data measured by the sensor",
+                "default": false
+            },
+            "enabled": {
+                "type": "bool",
+                "description": "True to enable sensor, False to disable the sensor",
+                "default": true
+            },
+            "sensorPeriod":{
+                "type": "float",
+                "description": "Downtime between sensor readings",
+                "default": 0
+            }
+        },
+        "outputs": {
+            "execOut": {
+                "type": "execution",
+                "description": "Output execution triggers when sensor has data"
+            },
+            "sensorTime":{
+                "type": "float",
+                "description": "Timestamp of the sensor reading",
+                "default": 0
+            },
+            "value": {
+                "type": "float",
+                "description": "Effort value reading",
+                "metadata": {
+                    "uiName": "Effort Value"
+                },
+                "default": 0.0
+            }
+        }
+    }
+}

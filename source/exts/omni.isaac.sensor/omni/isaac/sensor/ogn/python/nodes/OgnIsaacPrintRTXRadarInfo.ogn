@@ -1,0 +1,31 @@
+{
+    "IsaacPrintRTXRadarInfo": {
+        "version": 1,
+        "icon": "icons/isaac-sim.svg",
+        "language": "Python",
+        "description": [
+            "process and print the raw RTX Radar data"
+        ],
+        "metadata": {
+            "uiName": "Isaac Print RTX Radar Info"
+        },
+        "categoryDefinitions": "config/CategoryDefinition.json",
+        "categories": "isaacSensor",
+        "inputs": {
+            "exec": {
+                "type": "execution",
+                "description": "The input execution port"
+            },
+            "dataPtr":{
+                "type": "uint64",
+                "description": "Pointer to Radar render result",
+                "uiName": "Radar render result"
+            },
+            "testMode":{
+                "type": "bool",
+                "description": "Print less for benchmark tests",
+                "uiName": "Test Mode prints less"
+            }
+        }
+    }
+}

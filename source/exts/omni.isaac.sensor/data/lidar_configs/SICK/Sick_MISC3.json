@@ -1,0 +1,51 @@
+{
+    "_comment2": "parameters found in (A) https://cdn.sick.com/media/docs/1/71/671/operating_instructions_microscan3_efi_pro_en_im0077671.pdf from https://www.sick.com/de/en/catalog/products/safety/safety-laser-scanners/microscan3/mics3-abaz90za1p01/p/p608644?tab=detail",
+    "_comment3": "parameters without comments are assumed correct, but will ultimately need checking",
+    "class": "sensor",
+    "type": "lidar",
+    "name": "SICK microScan3 legacy", "_comment0": "Sick MICS3-ABAZ90ZA1P01",
+    "driveWorksId": "GENERIC", "_comment1": "Using generic, because no LidarDWId in drivesim-ov/include/omni/sensors/lidar/LidarProfileTypes.h",
+    "profile":
+    {
+        "scanType": "rotary",
+        "intensityProcessing": "normalization",
+        "rayType": "IDEALIZED",
+        "nearRangeM": 0.05, "_comment4": "(A) p.28, 50 mm",
+        "minDistBetweenEchos": 0.05,
+        "farRangeM": 64.0,
+
+    "rangeResolutionM": 0.001,
+
+    "rangeAccuracyM": 0.001,
+
+        "avgPowerW": 0.0092, "_comment61": "(A)p.168",
+    "minReflectance": 0.02,
+        "minReflectanceRange": 9.0,
+        "wavelengthNm": 845.0, "_commentA": "(A)p.167",
+        "pulseTimeNs": 4, "_commentA1": "(A)p.168",
+
+        "azimuthErrorMean": 0.0, "_commentB": "(B)p.50 Measurement error Statistical (1 σ): < 20 mm 2) Systematic: ± 60 mm 2)",
+    "azimuthErrorStd": 0.0,
+        "elevationErrorMean": 0.0,
+        "elevationErrorStd": 0.0000,
+
+
+        "maxReturns": 1,
+
+        "scanRateBaseHz": 20.0, "_commentC": "(A)p.163 Scan cycle time 50 ms 0.1°.  1000/50=20",
+
+        "reportRateBaseHz": 72000, "_commentC": "(A)p.163 .1 rez is 3600 per spin, and 20 spins",
+
+        "numberOfEmitters": 1, "_commentD": "(A) p.15",
+
+        "emitters":
+        {
+          "azimuthDeg": [0],
+          "elevationDeg": [0],
+          "fireTimeNs": [0]
+        },
+
+        "intensityMappingType": "LINEAR"
+    }
+}
+

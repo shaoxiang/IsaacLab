@@ -1,0 +1,57 @@
+{
+    "comment1" : "parameters obtained from https://data.ouster.io/downloads/datasheets/datasheet-rev06-v2p5-os2.pdf",
+    "comment2" : "parameters without comments are assumed correct, but will ultimately need checking",
+    "class": "sensor",
+    "type": "lidar",
+    "name": "OS2 REV6 128 10hz @ 1024 resolution", "comment3" : "Ouster OS2 REV6 128 channels @ 10Hz 1024 horizontal resolution",
+    "driveWorksId": "GENERIC",
+    "profile":
+    {
+        "scanType": "rotary",
+        "intensityProcessing": "normalization",
+        "rayType": "IDEALIZED",
+        "nearRangeM": 1.0, "comment4" : "OPTICAL PERFORMANCE-Minimum Range 1.0 m for point cloud data",
+        "farRangeM": 240.0, "comment5" : "OPTICAL PERFORMANCE- Range 210 m @ >90% detection probability, 100 klx sunlight 240 m @ >50% detection probability, 100 klx sunlight",
+        
+        "startAzimuthDeg": 0.0, "comment6" : "x+ is 0°  y+ is 90° (and z is up, right handed)",
+        "endAzimuthDeg": 360.0, "comment7" : "OPTICAL PERFORMANCE- Field of View Horizontal: 360°",
+        
+        "upElevationDeg": 11.25, "comment8" : "OPTICAL PERFORMANCE- Field of View Vertical: 45° (+22.5° to -22.5°)",
+        "downElevationDeg": -11.25,
+        
+        "rangeResolutionM": 0.001, "comment9" : "OPTICAL PERFORMANCE- Range Resolution 0.1 cm",
+        
+        "rangeAccuracyM": 0.03, "comment10" : "OPTICAL PERFORMANCE- Range Accuracy ±3 cm for lambertian targets, ±10 cm for retroreflectors",
+        
+        "avgPowerW": 0.002,
+        "minReflectance": 0.1, "comment11" : "OPTICAL PERFORMANCE - Range (10% Lambertian reflectivity, 2048 @ 10 Hz mode)",
+        "minReflectanceRange": 100.0, "comment12" : "OPTICAL PERFORMANCE - Range 80 m @ >90% detection probability, 100 klx sunlight 100 m @ >50% detection probability, 100 klx sunlight",
+        "wavelengthNm": 865.0, "comment13" : "LASER-  Laser Wavelength 865 nm",
+        "pulseTimeNs": 6,
+        
+        "comment14" : "These add noise to the emitter direction to each point randomly if Std is not 0.0",
+        "azimuthErrorMean": 0.0,
+        "azimuthErrorStd": 0.01, "comment15" : "OPTICAL PERFORMANCE-Angular Sampling Accuracy Horizontal: ±0.01°",
+        "elevationErrorMean": 0.0,
+        "elevationErrorStd": 0.01, "comment16" : "OPTICAL PERFORMANCE-Angular Sampling Accuracy Vertical: ±0.01°",
+        
+        "maxReturns": 2,
+        
+        "scanRateBaseHz": 10.0,
+        
+        "reportRateBaseHz": 10240,
+        
+        "numberOfEmitters": 128,
+        
+        "emitters":
+        {
+            "comment19" : "beam_azimuth_angles from get_beam_intrinsics",
+            "azimuthDeg": [2.07, 0.66, -0.71, -2.08, 2.07, 0.69, -0.7, -2.09, 2.06, 0.67, -0.71, -2.06, 2.06, 0.69, -0.71, -2.07, 2.07, 0.69, -0.71, -2.07, 2.07, 0.69, -0.7, -2.08, 2.05, 0.68, -0.69, -2.06, 2.06, 0.69, -0.69, -2.07, 2.08, 0.69, -0.69, -2.06, 2.08, 0.69, -0.69, -2.07, 2.08, 0.69, -0.69, -2.05, 2.08, 0.7, -0.68, -2.06, 2.09, 0.7, -0.67, -2.05, 2.08, 0.7, -0.68, -2.05, 2.08, 0.71, -0.67, -2.06, 2.08, 0.71, -0.68, -2.05, 2.07, 0.71, -0.67, -2.05, 2.08, 0.7, -0.68, -2.05, 2.09, 0.71, -0.66, -2.05, 2.09, 0.71, -0.67, -2.05, 2.09, 0.71, -0.66, -2.05, 2.1, 0.71, -0.66, -2.05, 2.09, 0.73, -0.67, -2.05, 2.1, 0.72, -0.66, -2.05, 2.09, 0.72, -0.66, -2.05, 2.11, 0.73, -0.69, -2.03, 2.1, 0.72, -0.65, -2.04, 2.11, 0.72, -0.67, -2.05, 2.1, 0.72, -0.66, -2.04, 2.11, 0.72, -0.66, -2.04, 2.1, 0.72, -0.65, -2.03, 2.11, 0.73, -0.66, -2.04],
+            "comment20" : "beam_altitude_angles from get_beam_intrinsics",
+            "elevationDeg": [10.76, 10.58, 10.42, 10.24, 10.1, 9.93, 9.76, 9.57, 9.41, 9.24, 9.09, 8.91, 8.75, 8.57, 8.41, 8.23, 8.08, 7.9, 7.74, 7.55, 7.39, 7.21, 7.03, 6.86, 6.7, 6.53, 6.35, 6.18, 6.02, 5.83, 5.67, 5.5, 5.32, 5.14, 4.97, 4.81, 4.63, 4.46, 4.28, 4.11, 3.95, 3.76, 3.58, 3.43, 3.24, 3.07, 2.9, 2.72, 2.55, 2.37, 2.21, 2.03, 1.87, 1.69, 1.51, 1.32, 1.16, 0.98, 0.81, 0.63, 0.46, 0.29, 0.11, -0.05, -0.25, -0.42, -0.58, -0.76, -0.93, -1.11, -1.28, -1.45, -1.63, -1.81, -1.97, -2.16, -2.32, -2.5, -2.68, -2.85, -3.02, -3.19, -3.37, -3.55, -3.73, -3.9, -4.07, -4.25, -4.4, -4.58, -4.75, -4.94, -5.11, -5.28, -5.46, -5.64, -5.8, -5.96, -6.15, -6.32, -6.49, -6.66, -6.84, -7, -7.17, -7.35, -7.51, -7.69, -7.86, -8.04, -8.22, -8.38, -8.55, -8.72, -8.89, -9.06, -9.23, -9.4, -9.57, -9.74, -9.91, -10.07, -10.24, -10.41, -10.58, -10.75, -10.92, -11.09],
+            "fireTimeNs": [381, 1143, 1905, 2667, 3429, 4191, 4953, 5715, 6477, 7239, 8001, 8763, 9525, 10287, 11049, 11811, 12573, 13335, 14097, 14859, 15621, 16383, 17145, 17907, 18669, 19431, 20193, 20955, 21717, 22479, 23241, 24003, 24765, 25527, 26289, 27051, 27813, 28575, 29337, 30099, 30861, 31623, 32385, 33147, 33909, 34671, 35433, 36195, 36957, 37719, 38481, 39243, 40005, 40767, 41529, 42291, 43053, 43815, 44577, 45339, 46101, 46863, 47625, 48387, 49149, 49911, 50673, 51435, 52197, 52959, 53721, 54483, 55245, 56007, 56769, 57531, 58293, 59055, 59817, 60579, 61341, 62103, 62865, 63627, 64389, 65151, 65913, 66675, 67437, 68199, 68961, 69723, 70485, 71247, 72009, 72771, 73533, 74295, 75057, 75819, 76581, 77343, 78105, 78867, 79629, 80391, 81153, 81915, 82677, 83439, 84201, 84963, 85725, 86487, 87249, 88011, 88773, 89535, 90297, 91059, 91821, 92583, 93345, 94107, 94869, 95631, 96393, 97155]
+        },
+        
+        "intensityMappingType": "LINEAR"
+    }
+}
