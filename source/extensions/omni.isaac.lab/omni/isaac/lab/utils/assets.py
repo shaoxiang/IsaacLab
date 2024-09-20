@@ -25,6 +25,7 @@ import omni.client
 """Path to the root directory on the Nucleus Server."""
 
 NUCLEUS_ASSET_ROOT_DIR = f"omniverse://localhost/Library/NVIDIA/Assets/Isaac/4.0/"
+NUCLEUS_ASSET_ROOT_DIR = f"D:/omniverse/Downloads/Assets/Isaac/4.1"
 
 NVIDIA_NUCLEUS_DIR = f"{NUCLEUS_ASSET_ROOT_DIR}/NVIDIA"
 """Path to the root directory on the NVIDIA Nucleus Server."""

@@ -48,7 +48,7 @@ class QuadcopterEnvWindow(BaseEnvWindow):
 
 
 @configclass
-class QuadcopterEnvCfg(DirectRLEnvCfg):
+class QuadcopterEnvSimpleCfg(DirectRLEnvCfg):
     ui_window_class_type = QuadcopterEnvWindow
 
     # simulation
@@ -79,7 +79,7 @@ class QuadcopterEnvCfg(DirectRLEnvCfg):
 
     # scene 
     # scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=True)    
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=10.0, replicate_physics=True) # 65536 32768 16384 
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=8192, env_spacing=10.0, replicate_physics=True) # 65536 32768 16384 
     # scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=True) 
     # 8192
     # robot
@@ -91,27 +91,23 @@ class QuadcopterEnvCfg(DirectRLEnvCfg):
     episode_length_s = 5.0
     decimation = 2
     num_actions = 4
-    num_observations = 13
+    num_observations = 10
     num_states = 0
     debug_vis = True
 
     # reward scales
     lin_vel_reward_scale = -0.05
-    ang_vel_reward_scale = -0.1
-
-    # lin_vel_reward_scale = -0.5
-    # ang_vel_reward_scale = -1.0
-    
-    angle_reward_scale = 1.0
-    distance_to_goal_reward_scale = -5.0
-    goal_reached_reward_scale = 20.0
+    ang_vel_reward_scale = -0.1    
+    angle_reward_scale = 0.1 # 1.0
+    distance_to_goal_reward_scale = -2.0
+    goal_reached_reward_scale = 5.0
     effort_reward_scale = 1.0
     speed_reward_scale = 0.1    
 
-class QuadcopterEnv(DirectRLEnv):
-    cfg: QuadcopterEnvCfg
+class QuadcopterEnvSimple(DirectRLEnv):
+    cfg: QuadcopterEnvSimpleCfg
 
-    def __init__(self, cfg: QuadcopterEnvCfg, render_mode: str | None = None, **kwargs):
+    def __init__(self, cfg: QuadcopterEnvSimpleCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
 
         # Total thrust and moment applied to the base of the quadcopter
@@ -128,10 +124,10 @@ class QuadcopterEnv(DirectRLEnv):
         self._episode_sums = {
             key: torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
             for key in [
-                "lin_vel",
-                "ang_vel",
+                # "lin_vel",
+                # "ang_vel",
                 "distance_to_goal",
-                "angle_error",
+                # "angle_error",
                 "goal_reached",
                 "effort",
                 # "mean_speed"
@@ -145,7 +141,7 @@ class QuadcopterEnv(DirectRLEnv):
 
         # add handle for debug visualization (this is set to a valid handle inside set_debug_vis)
         self.set_debug_vis(self.cfg.debug_vis)
-        print("robot_mass:", self._robot_mass, "robot_weight:", self._robot_weight)
+        print("version:0.2")
 
     def _setup_scene(self):
         self._robot = Articulation(self.cfg.robot)
@@ -163,7 +159,6 @@ class QuadcopterEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._actions = actions.clone().clamp(-1.0, 1.0)
-        # print("actions:", self._actions)
         self._thrust[:, 0, 2] = self.cfg.thrust_to_weight * self._robot_weight * (self._actions[:, 0] + 1.0) / 3.0
         self._moment[:, 0, :] = self.cfg.moment_scale * self._actions[:, 1:] / 4.0
 
@@ -207,49 +202,50 @@ class QuadcopterEnv(DirectRLEnv):
             [
                 self._robot.data.root_lin_vel_b,
                 self._robot.data.root_ang_vel_b,
-                self._robot.data.projected_gravity_b,
+                # self._robot.data.projected_gravity_b,
                 desired_pos_b,
                 # pos_error,
                 angle_error,
             ],
             dim=-1,
         )
-        # print("obs:", obs)
         observations = {"policy": obs}
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
 
-        lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)        
-        root_ang_vel_b_clone = self._robot.data.root_ang_vel_b.clone()
-        root_ang_vel_b_clone[:, 2] = 0
-        ang_vel = torch.sum(torch.square(root_ang_vel_b_clone), dim=1)
+        # lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)        
+        # root_ang_vel_b_clone = self._robot.data.root_ang_vel_b.clone()
+        # root_ang_vel_b_clone[:, 2] = 0
+        # ang_vel = torch.sum(torch.square(root_ang_vel_b_clone), dim=1)
 
         distance_to_goal = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1)
-        self._is_goal_reached = distance_to_goal < 0.05
-        # distance_to_goal_mapped = 1 - torch.tanh(distance_to_goal / 0.8)
-        distance_to_goal_exp = torch.exp(-1.5 * distance_to_goal)
-        # distance_to_goal_mapped = (1.0 / (0.1 + distance_to_goal / self._goal_distance)) - 0.9
-        distance_to_goal_mapped = distance_to_goal / self._goal_distance
+        distance_to_goal_mapped = (distance_to_goal / self._goal_distance) - 0.1 # 1.0
+        self._is_goal_reached = (distance_to_goal < 0.05)
+        # distance_to_goal_exp = torch.exp(-1.5 * distance_to_goal)
 
-        yaw_robo = yaw_angle(self._robot.data.root_quat_w)
-        yaw_desired = yaw_angle(self._desired_quat_w)
-        angle_error = wrap_to_pi(yaw_robo - yaw_desired)
+        # yaw_robo = yaw_angle(self._robot.data.root_quat_w)
+        # yaw_desired = yaw_angle(self._desired_quat_w)
+        # angle_error = wrap_to_pi(yaw_robo - yaw_desired)
 
-        angle_error_mapped = 10.0 * (torch.cos(angle_error) - 0.99)
+        # angle_error_mapped = 10.0 * (torch.cos(angle_error) - 0.99)
         reach_goal_mean_speed = self._goal_distance / (self.episode_length_buf * self.step_dt)
 
         # valid_mean_speed = (self._goal_distance - distance_to_goal) / (self.episode_length_buf * self.step_dt)
-        # effort = torch.exp(-self._actions.sum(dim=1))
         effort = torch.exp(-torch.abs(self._actions.sum(dim=1)))
 
+        # print("distance_to_goal_mapped:", distance_to_goal_mapped, distance_to_goal, self._goal_distance)
+        # print("distance_to_goal_exp:", distance_to_goal_exp, self._is_goal_reached)
+        # print("reach_goal_mean_speed:", reach_goal_mean_speed, effort)
+        
         rewards = {
-            "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
-            "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
+            # "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
+            # "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
             "distance_to_goal": distance_to_goal_mapped * self.cfg.distance_to_goal_reward_scale * self.step_dt,
-            "angle_error": distance_to_goal_exp * angle_error_mapped * self.cfg.angle_reward_scale * self.step_dt,
+            # "angle_error": distance_to_goal_mapped * angle_error_mapped * self.cfg.angle_reward_scale * self.step_dt,
+            # "angle_error": self._is_goal_reached * angle_error_mapped * self.cfg.angle_reward_scale,
             "goal_reached": self._is_goal_reached * reach_goal_mean_speed * self.cfg.goal_reached_reward_scale,
-            "effort": effort * self.cfg.effort_reward_scale * self.step_dt,
+            # "effort": effort * self.cfg.effort_reward_scale * self.step_dt,
             # "mean_speed": valid_mean_speed * self.cfg.speed_reward_scale,
         }
         
@@ -265,7 +261,7 @@ class QuadcopterEnv(DirectRLEnv):
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         time_out = torch.logical_or((self.episode_length_buf >= self.max_episode_length - 1), self._is_goal_reached)
-        died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.05, self._robot.data.root_pos_w[:, 2] > 10.0)
+        died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.05, self._robot.data.root_pos_w[:, 2] > 20.0)
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
@@ -298,29 +294,31 @@ class QuadcopterEnv(DirectRLEnv):
 
         self._actions[env_ids] = 0.0
         # Sample new commands
-        self._desired_pos_w[env_ids, :2] = torch.zeros_like(self._desired_pos_w[env_ids, :2]).uniform_(-1.0, 1.0)
+        self._desired_pos_w[env_ids, :2] = torch.zeros_like(self._desired_pos_w[env_ids, :2]).uniform_(0.0, 1.0)
         self._desired_pos_w[env_ids, :2] += self._terrain.env_origins[env_ids, :2]
-        self._desired_pos_w[env_ids, 2] = torch.zeros_like(self._desired_pos_w[env_ids, 2]).uniform_(0.5, 3.0)
+        self._desired_pos_w[env_ids, 2] = torch.zeros_like(self._desired_pos_w[env_ids, 2]).uniform_(4.0, 6.0)
         self._desired_quat_w[env_ids,] = random_orientation(num = 1, device=self.device)
         
-        x_shift = random.uniform(-1.0, 1.0)
-        y_shift = random.uniform(-1.0, 1.0)
-        height_random = random.uniform(-4.0, -1.0)
+        x_shift = random.uniform(-2.0, -1.0)
+        y_shift = random.uniform(-2.0, -1.0)
+        # height_random = random.uniform(-3.0, 3.0)
 
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
         joint_vel = self._robot.data.default_joint_vel[env_ids]
         default_root_state = self._robot.data.default_root_state[env_ids]
-        default_root_state[:, 0] += x_shift
-        default_root_state[:, 1] += y_shift
-        default_root_state[:, 2] += height_random
+        # default_root_state[:, 0] += x_shift
+        # default_root_state[:, 1] += y_shift
+        # default_root_state[:, 2] += height_random
         default_root_state[:, :3] += self._terrain.env_origins[env_ids]
+        # print("default_root_state:", default_root_state, "desired_pos_w:", self._desired_pos_w)
+
         self._robot.write_root_pose_to_sim(default_root_state[:, :7], env_ids)
         self._robot.write_root_velocity_to_sim(default_root_state[:, 7:], env_ids)
         self._robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
 
         self._is_goal_reached[env_ids] &= False 
-        self._goal_distance[env_ids] = torch.linalg.norm(self._desired_pos_w[env_ids] - self._robot.data.root_pos_w[env_ids])
+        self._goal_distance[env_ids] = torch.linalg.norm(self._desired_pos_w[env_ids] - self._robot.data.root_pos_w[env_ids], dim=1)
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         # set visibility of markers

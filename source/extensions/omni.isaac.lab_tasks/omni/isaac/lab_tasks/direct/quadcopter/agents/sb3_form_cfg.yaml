@@ -1,0 +1,43 @@
+# Reference: https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/ppo.yml#L32
+seed: 42
+
+n_timesteps: !!float 2e8
+policy: 'MlpPolicy'
+device: "cuda:0"
+
+##############################################
+# PPO
+n_steps: 32
+batch_size: 4096 # 32768
+gae_lambda: 0.99 # 0.95
+gamma: 0.99
+n_epochs: 8
+ent_coef: 0.01
+gae_lambda: 0.99
+learning_rate: !!float 5e-4
+clip_range: !!float 0.2
+policy_kwargs: "dict(
+                  activation_fn=nn.ELU,
+                  net_arch=[512, 256, 256, 128],
+                  squash_output=False,
+                )"
+vf_coef: 0.2
+max_grad_norm: 1.0
+target_kl: 0.01
+use_sde: True
+##############################################
+
+# TD3
+# learning_starts: 8192
+# gradient_steps: 1
+# buffer_size: 131072
+# train_freq: 1
+# batch_size: 4096 # 32768 # 32768
+# # noise_type: 'normal'
+# # noise_std: 0.1
+# gamma: 0.998
+# learning_rate: !!float 1e-3
+# policy_kwargs: "dict(
+#                   activation_fn=nn.ELU,
+#                   net_arch=[1024, 512, 256, 128],
+#                 )"

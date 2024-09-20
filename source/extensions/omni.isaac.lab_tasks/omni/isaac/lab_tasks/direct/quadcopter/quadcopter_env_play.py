@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import torch
 import numpy as np
-import gymnasium as gym
-import random
+from scipy.spatial.transform import Rotation as R
 
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.assets import Articulation, ArticulationCfg
@@ -22,6 +21,7 @@ from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.math import random_orientation, subtract_frame_transforms, yaw_angle, wrap_to_pi
 from omni.isaac.lab.markers.config import BLUE_ARROW_X_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG, RED_ARROW_X_MARKER_CFG
 
+
 # Pre-defined configs
 ##
 from omni.isaac.lab_assets import CRAZYFLIE_CFG  # isort: skip
@@ -30,7 +30,7 @@ from omni.isaac.lab.markers import CUBOID_MARKER_CFG  # isort: skip
 class QuadcopterEnvWindow(BaseEnvWindow):
     """Window manager for the Quadcopter environment."""
 
-    def __init__(self, env: QuadcopterEnv, window_name: str = "IsaacLab"):
+    def __init__(self, env: QuadcopterEnvPlay, window_name: str = "IsaacLab"):
         """Initialize the window.
 
         Args:
@@ -48,7 +48,7 @@ class QuadcopterEnvWindow(BaseEnvWindow):
 
 
 @configclass
-class QuadcopterEnvCfg(DirectRLEnvCfg):
+class QuadcopterEnvPlayCfg(DirectRLEnvCfg):
     ui_window_class_type = QuadcopterEnvWindow
 
     # simulation
@@ -79,16 +79,16 @@ class QuadcopterEnvCfg(DirectRLEnvCfg):
 
     # scene 
     # scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=True)    
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=10.0, replicate_physics=True) # 65536 32768 16384 
-    # scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=True) 
-    # 8192
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=2.5, replicate_physics=True)
+
     # robot
     robot: ArticulationCfg = CRAZYFLIE_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+
     thrust_to_weight = 1.9
     moment_scale = 0.01
 
     # env
-    episode_length_s = 5.0
+    episode_length_s = 10000.0
     decimation = 2
     num_actions = 4
     num_observations = 13
@@ -103,15 +103,15 @@ class QuadcopterEnvCfg(DirectRLEnvCfg):
     # ang_vel_reward_scale = -1.0
     
     angle_reward_scale = 1.0
-    distance_to_goal_reward_scale = -5.0
-    goal_reached_reward_scale = 20.0
+    distance_to_goal_reward_scale = 15.0
+    goal_reached_reward_scale = 10.0
     effort_reward_scale = 1.0
     speed_reward_scale = 0.1    
 
-class QuadcopterEnv(DirectRLEnv):
-    cfg: QuadcopterEnvCfg
+class QuadcopterEnvPlay(DirectRLEnv):
+    cfg: QuadcopterEnvPlayCfg
 
-    def __init__(self, cfg: QuadcopterEnvCfg, render_mode: str | None = None, **kwargs):
+    def __init__(self, cfg: QuadcopterEnvPlayCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
 
         # Total thrust and moment applied to the base of the quadcopter
@@ -121,8 +121,10 @@ class QuadcopterEnv(DirectRLEnv):
         # Goal position
         self._desired_pos_w = torch.zeros(self.num_envs, 3, device=self.device)
         self._desired_quat_w = torch.zeros(self.num_envs, 4, device=self.device)
+        self._target_point_index = torch.zeros(self.num_envs, device=self.device, dtype=int)
         self._is_goal_reached = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self._goal_distance = torch.ones(self.num_envs, device=self.device)
+        self._path_max_count = torch.ones(self.num_envs, device=self.device)
         
         # Logging
         self._episode_sums = {
@@ -142,13 +144,25 @@ class QuadcopterEnv(DirectRLEnv):
         self._robot_mass = self._robot.root_physx_view.get_masses()[0].sum()
         self._gravity_magnitude = torch.tensor(self.sim.cfg.gravity, device=self.device).norm()
         self._robot_weight = (self._robot_mass * self._gravity_magnitude).item()
+        print("robot_mass:", self._robot_mass, self._gravity_magnitude, self._robot_weight)
+        
+        # debug drawing for lines connecting the frame
+        # import omni.isaac.debug_draw._debug_draw as omni_debug_draw
+        # self.draw_interface = omni_debug_draw.acquire_debug_draw_interface()
 
         # add handle for debug visualization (this is set to a valid handle inside set_debug_vis)
         self.set_debug_vis(self.cfg.debug_vis)
-        print("robot_mass:", self._robot_mass, "robot_weight:", self._robot_weight)
+
+        self._target_path_point, self._target_path_quat = self.tunnel_flight_path()
+        # self._target_path_point, self._target_path_quat = self.gen_path()
+        
 
     def _setup_scene(self):
         self._robot = Articulation(self.cfg.robot)
+        # print("self._robot:", dir(self._robot))
+        # print("self.cfg.robot:", dir(self.cfg.robot))
+        self.cfg.robot.init_state.pos = (8.0, 8.0, 4.0)
+ 
         self.scene.articulations["robot"] = self._robot
 
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
@@ -163,42 +177,37 @@ class QuadcopterEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._actions = actions.clone().clamp(-1.0, 1.0)
-        # print("actions:", self._actions)
         self._thrust[:, 0, 2] = self.cfg.thrust_to_weight * self._robot_weight * (self._actions[:, 0] + 1.0) / 3.0
         self._moment[:, 0, :] = self.cfg.moment_scale * self._actions[:, 1:] / 4.0
 
     def _apply_action(self):
         self._robot.set_external_force_and_torque(self._thrust, self._moment, body_ids=self._body_id)
 
-    def _configure_gym_env_spaces(self):
-        """Configure the action and observation spaces for the Gym environment."""
-        # observation space (unbounded since we don't impose any limits)
-        self.num_actions = self.cfg.num_actions
-        self.num_observations = self.cfg.num_observations
-        self.num_states = self.cfg.num_states
-
-        # set up spaces
-        self.single_observation_space = gym.spaces.Dict()
-        self.single_observation_space["policy"] = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(self.num_observations,)
-        )
-        self.single_action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(self.num_actions,))
-
-        # batch the spaces for vectorized environments
-        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space["policy"], self.num_envs)
-        self.action_space = gym.vector.utils.batch_space(self.single_action_space, self.num_envs)
-
-        if self.num_states > 0:
-            self.single_observation_space["critic"] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(self.num_states,))
-            self.state_space = gym.vector.utils.batch_space(self.single_observation_space["critic"], self.num_envs)
+    def update_desired_pos(self, indices):
+        # print("self._target_point_index[indices]:", self._target_point_index[indices])
+        for idx in indices:
+            if self._target_point_index[idx] < self._path_max_count[idx]:
+                self._desired_pos_w[idx,] = self._target_path_point[self._target_point_index[idx]]
+                # self._desired_pos_w[idx, :2] += self._terrain.env_origins[idx, :2]
+                self._desired_quat_w[idx,] = self._target_path_quat[self._target_point_index[idx]]
+                print("desired_pos_w:", self._desired_pos_w[idx,])
+            else:
+                self.episode_length_buf[idx] = self.max_episode_length
 
     def _get_observations(self) -> dict:
-        # desired_pos_b, _ = subtract_frame_transforms(
-        #     self._robot.data.root_state_w[:, :3], self._robot.data.root_state_w[:, 3:7], self._desired_pos_w
-        # )
+        desired_pos_b, _ = subtract_frame_transforms(
+            self._robot.data.root_state_w[:, :3], self._robot.data.root_state_w[:, 3:7], self._desired_pos_w
+        )
 
-        # pos_error, angle_error = compute_pose_error(self._robot.data.root_pos_w, self._robot.data.root_quat_w, self._desired_pos_w, self._desired_quat_w)
-        desired_pos_b = self._robot.data.root_state_w[:, :3] - self._desired_pos_w
+        # desired_pos_b = self._desired_pos_w - self._robot.data.root_state_w[:, :3]
+        # self._is_goal_reached = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1) < 0.1
+
+        # 使用.nonzero()获取True值的索引（对于一维tensor，我们只关心第一个维度）  
+        indices = self._is_goal_reached.nonzero()[:, 0]
+        # print("indices:", indices)
+        self._target_point_index[indices] += 1
+        self.update_desired_pos(indices)
+
         yaw_robo = yaw_angle(self._robot.data.root_quat_w)
         yaw_desired = yaw_angle(self._desired_quat_w)
         angle_error = wrap_to_pi(yaw_robo - yaw_desired).unsqueeze(1)
@@ -214,32 +223,37 @@ class QuadcopterEnv(DirectRLEnv):
             ],
             dim=-1,
         )
-        # print("obs:", obs)
         observations = {"policy": obs}
+
+        # print("observations:", observations)
+
+        # print("imu lin:", self._robot.data.root_lin_vel_b, "ang_vel:", self._robot.data.root_ang_vel_b, "g:", self._robot.data.projected_gravity_b)
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
-
         lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)        
         root_ang_vel_b_clone = self._robot.data.root_ang_vel_b.clone()
         root_ang_vel_b_clone[:, 2] = 0
         ang_vel = torch.sum(torch.square(root_ang_vel_b_clone), dim=1)
 
         distance_to_goal = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1)
-        self._is_goal_reached = distance_to_goal < 0.05
+
+        self._is_goal_reached = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1) < 0.05
         # distance_to_goal_mapped = 1 - torch.tanh(distance_to_goal / 0.8)
-        distance_to_goal_exp = torch.exp(-1.5 * distance_to_goal)
-        # distance_to_goal_mapped = (1.0 / (0.1 + distance_to_goal / self._goal_distance)) - 0.9
-        distance_to_goal_mapped = distance_to_goal / self._goal_distance
+
+        distance_to_goal_mapped = torch.exp(-1.5 * distance_to_goal)
 
         yaw_robo = yaw_angle(self._robot.data.root_quat_w)
         yaw_desired = yaw_angle(self._desired_quat_w)
         angle_error = wrap_to_pi(yaw_robo - yaw_desired)
+        
 
+        # pos_error, angle_error = compute_pose_error(self._robot.data.root_pos_w, self._robot.data.root_quat_w, self._desired_pos_w, self._desired_quat_w)
         angle_error_mapped = 10.0 * (torch.cos(angle_error) - 0.99)
         reach_goal_mean_speed = self._goal_distance / (self.episode_length_buf * self.step_dt)
 
         # valid_mean_speed = (self._goal_distance - distance_to_goal) / (self.episode_length_buf * self.step_dt)
+        
         # effort = torch.exp(-self._actions.sum(dim=1))
         effort = torch.exp(-torch.abs(self._actions.sum(dim=1)))
 
@@ -247,7 +261,7 @@ class QuadcopterEnv(DirectRLEnv):
             "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
             "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
             "distance_to_goal": distance_to_goal_mapped * self.cfg.distance_to_goal_reward_scale * self.step_dt,
-            "angle_error": distance_to_goal_exp * angle_error_mapped * self.cfg.angle_reward_scale * self.step_dt,
+            "angle_error": distance_to_goal_mapped * angle_error_mapped * self.cfg.angle_reward_scale * self.step_dt,
             "goal_reached": self._is_goal_reached * reach_goal_mean_speed * self.cfg.goal_reached_reward_scale,
             "effort": effort * self.cfg.effort_reward_scale * self.step_dt,
             # "mean_speed": valid_mean_speed * self.cfg.speed_reward_scale,
@@ -264,8 +278,9 @@ class QuadcopterEnv(DirectRLEnv):
         return reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
-        time_out = torch.logical_or((self.episode_length_buf >= self.max_episode_length - 1), self._is_goal_reached)
-        died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.05, self._robot.data.root_pos_w[:, 2] > 10.0)
+        time_out = self.episode_length_buf < -1
+        # died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.1, self._robot.data.root_pos_w[:, 2] > 2.0)
+        died = self._robot.data.root_pos_w[:, 2] < 0.1
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
@@ -276,7 +291,6 @@ class QuadcopterEnv(DirectRLEnv):
         final_distance_to_goal = torch.linalg.norm(
             self._desired_pos_w[env_ids] - self._robot.data.root_pos_w[env_ids], dim=1
         ).mean()
-
         extras = dict()
         for key in self._episode_sums.keys():
             episodic_sum_avg = torch.mean(self._episode_sums[key][env_ids])
@@ -297,30 +311,20 @@ class QuadcopterEnv(DirectRLEnv):
             self.episode_length_buf = torch.randint_like(self.episode_length_buf, high=int(self.max_episode_length))
 
         self._actions[env_ids] = 0.0
-        # Sample new commands
-        self._desired_pos_w[env_ids, :2] = torch.zeros_like(self._desired_pos_w[env_ids, :2]).uniform_(-1.0, 1.0)
-        self._desired_pos_w[env_ids, :2] += self._terrain.env_origins[env_ids, :2]
-        self._desired_pos_w[env_ids, 2] = torch.zeros_like(self._desired_pos_w[env_ids, 2]).uniform_(0.5, 3.0)
-        self._desired_quat_w[env_ids,] = random_orientation(num = 1, device=self.device)
+        self._target_point_index[env_ids] = 0
+        self.update_desired_pos(env_ids)
         
-        x_shift = random.uniform(-1.0, 1.0)
-        y_shift = random.uniform(-1.0, 1.0)
-        height_random = random.uniform(-4.0, -1.0)
-
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
         joint_vel = self._robot.data.default_joint_vel[env_ids]
         default_root_state = self._robot.data.default_root_state[env_ids]
-        default_root_state[:, 0] += x_shift
-        default_root_state[:, 1] += y_shift
-        default_root_state[:, 2] += height_random
-        default_root_state[:, :3] += self._terrain.env_origins[env_ids]
+        # default_root_state[:, :3] += self._terrain.env_origins[env_ids]
         self._robot.write_root_pose_to_sim(default_root_state[:, :7], env_ids)
         self._robot.write_root_velocity_to_sim(default_root_state[:, 7:], env_ids)
         self._robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
-
-        self._is_goal_reached[env_ids] &= False 
-        self._goal_distance[env_ids] = torch.linalg.norm(self._desired_pos_w[env_ids] - self._robot.data.root_pos_w[env_ids])
+        print("----------------------------------------------")
+        print("reset!!!")
+        print("----------------------------------------------")
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         # set visibility of markers
@@ -359,3 +363,115 @@ class QuadcopterEnv(DirectRLEnv):
         self.base_target_goal_visualizer.visualize(self._desired_pos_w, self._desired_quat_w)
         self.base_quadcopter_visualizer.visualize(quadcopter_pos_w, quadcopter_quat_w)
 
+    def vector_to_quaternion(self, direction_vector):
+        
+        # Step 3: Normalize the Direction Vector
+        direction_vector = direction_vector / np.linalg.norm(direction_vector)
+        
+        # Step 4: Handle zero vector (no rotation)
+        if np.allclose(direction_vector, np.zeros(3)):
+            return np.array([1.0, 0.0, 0.0, 0.0])  # Identity quaternion (no rotation)
+
+        # Step 5: Rotation axis (normalized direction vector)
+        rotation_axis = direction_vector
+
+        # Step 6: Calculate the rotation angle (using arctan2 for quadrant handling)
+        angle = np.arctan2(direction_vector[1], direction_vector[0])  # Angle around z-axis
+
+        # Step 7: Compute the Quaternion
+        quaternion = R.from_euler('z', angle, degrees=False).as_quat()
+        
+        quaternion = np.roll(quaternion, shift=1)
+        
+        return quaternion
+
+    def gen_path(self):
+        # 设置参数范围  
+        t = np.linspace(0, 2 * np.pi, 60)  # 参数t的范围从0到2π  
+        # 定义8字形轨迹的参数方程  
+        # 这里我们使用两个正弦函数，其中一个带有相位偏移来创建8字形状  
+        x = 10.0 * np.sin(t)  
+        y = 5.0 * np.sin(2 * t)  # 使用2t来加快y方向上的变化，并可以调整系数来改变形状  
+        # z可以保持为常数或者也使用一个正弦函数  
+        # z = np.zeros_like(t)  # z轴为0，形成平面图形  
+        z = np.sin(2* t) + 3.5
+        # colors = [(random.uniform(0.5, 1), random.uniform(0.5, 1), random.uniform(0.5, 1), 1) for _ in range(N)]
+        path_point_list = np.column_stack((x, y, z))
+        path_quaternion_list = []
+
+        for idx, point in enumerate(path_point_list):
+            vector = point - path_point_list[idx - 1]
+            quaternion = self.vector_to_quaternion(vector)
+            path_quaternion_list.append(quaternion)
+
+        path_point_tensor = torch.tensor(path_point_list).to(self.device)
+        path_quaternion_tensor = torch.tensor(np.array(path_quaternion_list)).to(self.device)
+
+        # print(self._target_path_point[0], self._desired_pos_w[env_ids,], env_ids)
+        # env_origins: tensor([1.2500, 0.0000], device='cuda:0')
+        # env_origins: tensor([-1.2500,  0.0000], device='cuda:0')
+
+        for idx in range(self.num_envs):
+            self._path_max_count[idx] = len(path_point_list)
+            # self.draw_interface.draw_lines_spline(path_point_list + self._terrain.env_origins[idx].cpu().numpy(), (1, 0, 0, 1), 1, False)
+            print("env_origins:", self._terrain.env_origins[idx])
+
+        return path_point_tensor.float(), path_quaternion_tensor.float()
+    
+    def interpolate_equidistant(self, point1, point2, interpolation_distance):
+        """  
+        对线段进行等距离插值 
+        """  
+        distance_between_point = np.linalg.norm(np.array(point1) - np.array(point2))
+
+        # print("distance_between_point:", distance_between_point, point1, point2)
+
+        if distance_between_point < interpolation_distance:
+            return [point1]
+        else:
+            num_points = int(distance_between_point / interpolation_distance)
+            # 初始化插值点列表  
+            points = [point1]
+
+            dx = (point2[0] - point1[0]) / num_points
+            dy = (point2[1] - point1[1]) / num_points
+            dz = (point2[2] - point1[2]) / num_points
+
+            # print("dx:", dx, dy, dz, num_points)
+            
+            # 计算并添加插值点  
+            for i in range(1, num_points):  
+                x = point1[0] + i * dx  
+                y = point1[1] + i * dy
+                z = point1[2] + i * dz
+                points.append([x, y, z]) 
+
+            point_last = np.array([point1[0] + num_points * dx, point1[1] + num_points * dy, point1[2] + num_points * dz])
+            distance_between_point = np.linalg.norm(point_last - point2)
+            if distance_between_point > interpolation_distance:
+                points.append(point_last) 
+    
+        return points
+    
+    def tunnel_flight_path(self):
+        path_points = [(16.857454, 4.733797, 3), (23.785446, 0.7394848, 3), (37.238182, -5.8582616, 3), (50.593536, -10.577381, 3), (61.530663, -8.310559, 3), (66.24306, -6.116083, 3), (89.07483, 16.195843, 3), (86.178894, 15.035391, 3.0), (71.75105, 0.41696435, 3.0), (55.901173, -11.562683, 3.0), (40.07982, -6.569447, 3.0), (7.67947, 7.4372797, 3.0)]
+        path_point_interpolate = []
+        path_quaternion_list = []
+
+        for i in range(len(path_points) - 1):
+            new_points = self.interpolate_equidistant(path_points[i], path_points[i + 1], 2.0)
+            path_point_interpolate += new_points
+        
+        path_point_list = np.array(path_point_interpolate)
+
+        for idx, point in enumerate(path_point_list):
+            vector = point - path_point_list[idx - 1]
+            quaternion = self.vector_to_quaternion(vector)
+            path_quaternion_list.append(quaternion)
+
+        path_point_tensor = torch.tensor(path_point_list).to(self.device)
+        path_quaternion_tensor = torch.tensor(np.array(path_quaternion_list)).to(self.device)
+        self._path_max_count[0] = len(path_point_list)
+
+        # self.draw_interface.draw_lines_spline(path_point_list, (1, 0, 0, 1), 1, False)
+        return path_point_tensor.float(), path_quaternion_tensor.float()

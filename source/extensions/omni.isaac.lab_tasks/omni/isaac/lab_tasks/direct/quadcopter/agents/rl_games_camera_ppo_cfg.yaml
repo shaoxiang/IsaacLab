@@ -12,34 +12,47 @@ params:
     name: continuous_a2c_logstd
 
   network:
-    name: actor_critic
+    name: resnet_actor_critic
+    require_rewards: True
+    require_last_actions: False
     separate: False
+    # value_shape: 1
     space:
       continuous:
+        # mu_activation: gelu
+        # sigma_activation: gelu
+        fixed_sigma: True
         mu_activation: None
         sigma_activation: None
-
         mu_init:
           name: default
         sigma_init:
           name: const_initializer
           val: 0
-        fixed_sigma: True
-    mlp:
-      units: [64, 64]
+    
+    cnn:
+      permute_input: False
+      conv_depths: [16, 16, 16]
       activation: elu
-      d2rl: False
-
       initializer:
         name: default
       regularizer:
-        name: None
+        name: 'None'
+      
+    mlp:
+      units: [128, 64, 64]
+      activation: elu
+      d2rl: False
+      regularizer:
+        name: 'None'
+      initializer:
+        name: default 
 
   load_checkpoint: False # flag which sets whether to load the checkpoint
   load_path: '' # path to the checkpoint to load
 
   config:
-    name: quadcopter_direct
+    name: quadcopter_direct_camera
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
@@ -62,7 +75,7 @@ params:
     score_to_win: 20000
     max_epochs: 20000
     save_best_after: 100
-    save_frequency: 25
+    save_frequency: 100
     grad_norm: 1.0
     entropy_coef: 0.0
     truncate_grads: True
@@ -74,3 +87,6 @@ params:
     clip_value: True
     seq_length: 4
     bounds_loss_coef: 0.0001
+    env_config:
+      env_name: quadcopter_direct_camera
+      use_dict_obs_space: True

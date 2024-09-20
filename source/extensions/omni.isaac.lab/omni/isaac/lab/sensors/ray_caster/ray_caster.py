@@ -381,8 +381,9 @@ class RTXRayCaster(SensorBase):
             rep_annotator = rep.AnnotatorRegistry.get_annotator("RtxSensorCpuIsaacCreateRTXLidarScanBuffer", do_array_copy=False)
             rep_annotator.attach(render_prod_path)
             # Debug draw
-            # self.writer = rep.writers.get("RtxLidarDebugDrawPointCloudBuffer")
-            # self.writer.attach(render_prod_path)
+            # if debug_vis:
+            self.writer = rep.writers.get("RtxLidarDebugDrawPointCloudBuffer")
+            self.writer.attach(render_prod_path)
             
             # add to registry
             if lidar_prim.pathString not in self._rep_registry:
@@ -390,6 +391,13 @@ class RTXRayCaster(SensorBase):
                 self._data[lidar_prim.pathString] = []
             self._rep_registry[lidar_prim.pathString].append(rep_annotator)
             self._data[lidar_prim.pathString].append(RTXRayCasterData())
+
+    # def _set_debug_vis_impl(self, debug_vis: bool):
+    #     # set visibility of markers
+    #     # note: parent only deals with callbacks. not their visibility
+    #     if debug_vis:
+    #         self.writer = rep.writers.get("RtxLidarDebugDrawPointCloudBuffer")
+    #         self.writer.attach(render_prod_path)
 
     def _update_buffers_impl(self, env_ids: Sequence[int]):
         for lidar_prim_path, annotators in self._rep_registry.items():
