@@ -99,7 +99,7 @@ call :extract_python_exe
 rem if the directory contains setup.py then install the python module
 if exist "%ext_folder%\setup.py" (
     echo     module: %ext_folder%
-    call !python_exe! -m pip install --editable %ext_folder%
+    call !python_exe! -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --editable %ext_folder%
 )
 goto :eof
 
@@ -291,7 +291,7 @@ if "%arg%"=="-i" (
         shift
     )
     rem install the rl-frameworks specified
-    call !python_exe! -m pip install -e %ISAACLAB_PATH%\source\extensions\omni.isaac.lab_tasks[!framework_name!]
+    call !python_exe! -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -e %ISAACLAB_PATH%\source\extensions\omni.isaac.lab_tasks[!framework_name!]
     shift
 ) else if "%arg%"=="--install" (
     rem install the python packages in omni.isaac.rl/source directory
@@ -316,7 +316,7 @@ if "%arg%"=="-i" (
         shift
     )
     rem install the rl-frameworks specified
-    call !python_exe! -m pip install -e %ISAACLAB_PATH%\source\extensions\omni.isaac.lab_tasks[!framework_name!]
+    call !python_exe! -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -e %ISAACLAB_PATH%\source\extensions\omni.isaac.lab_tasks[!framework_name!]
     rem update the vscode settings
     rem once we have a docker container, we need to disable vscode settings
     call :update_vscode_settings
@@ -359,7 +359,7 @@ if "%arg%"=="-i" (
     pip show pre-commit > nul 2>&1
     if errorlevel 1 (
         echo [INFO] Installing pre-commit...
-        pip install pre-commit
+        pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pre-commit
     )
 
     rem always execute inside the Isaac Lab directory
@@ -387,7 +387,7 @@ if "%arg%"=="-i" (
     pip show pre-commit > nul 2>&1
     if errorlevel 1 (
         echo [INFO] Installing pre-commit...
-        pip install pre-commit
+        pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pre-commit
     )
 
     rem always execute inside the Isaac Lab directory
@@ -506,7 +506,7 @@ if "%arg%"=="-i" (
     echo [INFO] Building documentation...
     call :extract_python_exe
     pushd %ISAACLAB_PATH%\docs
-    call !python_exe! -m pip install -r requirements.txt >nul
+    call !python_exe! -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt >nul
     call !python_exe! -m sphinx -b html -d _build\doctrees . _build\html
     echo [INFO] To open documentation on default browser, run:
     echo xdg-open "%ISAACLAB_PATH%\docs\_build\html\index.html"
@@ -518,7 +518,7 @@ if "%arg%"=="-i" (
     echo [INFO] Building documentation...
     call :extract_python_exe
     pushd %ISAACLAB_PATH%\docs
-    call !python_exe! -m pip install -r requirements.txt >nul
+    call !python_exe! -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt >nul
     call !python_exe! -m sphinx -b html -d _build\doctrees . _build\html
     echo [INFO] To open documentation on default browser, run:
     echo xdg-open "%ISAACLAB_PATH%\docs\_build\html\index.html"
