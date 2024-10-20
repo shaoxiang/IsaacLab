@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import torch
 import numpy as np
+import math
 import gymnasium as gym
 import random
 
@@ -294,13 +295,22 @@ class QuadcopterEnvSimple(DirectRLEnv):
 
         self._actions[env_ids] = 0.0
         # Sample new commands
-        self._desired_pos_w[env_ids, :2] = torch.zeros_like(self._desired_pos_w[env_ids, :2]).uniform_(0.0, 1.0)
+        phi = random.uniform(0, math.pi)  
+        theta = random.uniform(0, 2*torch.pi)
+        radius = random.uniform(0.3, 3.0)
+        ball_x = radius * math.sin(phi) * math.cos(theta)  
+        ball_y = radius * math.sin(phi) * math.sin(theta)  
+        ball_z = radius * math.cos(phi) + 5.0
+
+        self._desired_pos_w[env_ids, 0] = ball_x
+        self._desired_pos_w[env_ids, 1] = ball_y
         self._desired_pos_w[env_ids, :2] += self._terrain.env_origins[env_ids, :2]
-        self._desired_pos_w[env_ids, 2] = torch.zeros_like(self._desired_pos_w[env_ids, 2]).uniform_(4.0, 6.0)
+        self._desired_pos_w[env_ids, 2] = ball_z # torch.zeros_like(self._desired_pos_w[env_ids, 2]).uniform_(4.0, 6.0)
         self._desired_quat_w[env_ids,] = random_orientation(num = 1, device=self.device)
         
-        x_shift = random.uniform(-2.0, -1.0)
-        y_shift = random.uniform(-2.0, -1.0)
+        # phi_range=(0, torch.pi), theta_range=(0, 2*torch.pi)
+        # x_shift = random.uniform(-2.0, -1.0)
+        # y_shift = random.uniform(-2.0, -1.0)
         # height_random = random.uniform(-3.0, 3.0)
 
         # Reset robot state

@@ -1,0 +1,23 @@
+Forget about the previous conversation.
+The following are the names and coordinates of the items in the warehouse, in the format of item name: item coordinates
+You need to have a deep understanding of the function and meaning of each item, and determine which item the user wants to operate based on user input.
+1、Garbage can: (779.2939128691918, 47.132189021935794, 1006.5010172018044)
+2、Cleaning workstation cart, An indoor cleaning cart can perform tasks such as sweeping, mopping, and dusting within indoor environments.: (429.657284588202, 47.132189021935794, 1006.5010172018044)
+3、Refrigerator, A refrigerator functions to preserve food by maintaining a low temperature to slow spoilage: (11.829784892274944, 47.132189021935794, 923.8110523352002)
+4、Rectangular wooden table: (-304.7603779548192, 47.132189021935794, 923.8110523352002)
+5、Manual hydraulic handling vehicle: (-500.63138054267426, 47.132189021935794, 541.7863512256135)
+6、Forklift in front of the shelf: (-707.831277211269, 47.132189021935794, 135.69224166617596)
+7、Forklift in the middle of the warehouse: (-24.772486293877797, 21.24030135504119, -567.09834271956)
+8、Flat handcart, A hand-pushed flat cart is used for transporting light goods and materials manually: (-469.23122766484965, 47.132189021935794, -767.3050915286699)
+9、Fire extinguishing equipment: (-150.119874372608, 47.132189021935794, -1643.7718654270498)
+10、Wooden chairs: (489.3177879855286, 47.132189021935794, -1458.2103768474335)
+11、Wooden Round Table: (689.7445625033821, 47.132189021935794, -1468.9270645233498)
+12、Water dispenser: (759.7897374864597, 47.132189021935794, -1069.0031820407)
+13、Office desk, The desk is cluttered with a computer, notebook, employee badge, cup, and books: (759.7897374864597, 47.132189021935794, -479.3973967307045)
+14、Esports Chair: (759.7897374864597, 47.132189021935794, -196.27803474023736)
+15、Tray on shelf: (-823.1436499450201, 21.24030135504119, -140.74442779822758)
+16、Materials on shelves: (-823.1436499450201, 21.24030135504119, -1000.8408889486429)
+Please determine which item is most relevant based on the user's input information.
+Only output the data of the most relevant item index. You must output one.
+Index numbers are allowed to be output, and why you choose this one. 
+The user's input is:
