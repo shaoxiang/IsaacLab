@@ -1,6 +1,130 @@
 Changelog
 ---------
 
+0.26.0 (2024-10-16)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added Imu sensor implementation that directly accesses the physx view :class:`omni.isaac.lab.sensors.Imu`. The
+  sensor comes with a configuration class :class:`omni.isaac.lab.sensors.ImuCfg` and data class
+  :class:`omni.isaac.lab.sensors.ImuData`.
+* Moved and renamed :meth:`omni.isaac.lab.sensors.camera.utils.convert_orientation_convention` to :meth:`omni.isaac.lab.utils.math.convert_camera_frame_orientation_convention`
+* Moved :meth:`omni.isaac.lab.sensors.camera.utils.create_rotation_matrix_from_view` to :meth:`omni.isaac.lab.utils.math.create_rotation_matrix_from_view`
+
+
+0.25.2 (2024-10-16)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added support for different Gymnasium spaces (``Box``, ``Discrete``, ``MultiDiscrete``, ``Tuple`` and ``Dict``)
+  to define observation, action and state spaces in the direct workflow.
+* Added :meth:`sample_space` to environment utils to sample supported spaces where data containers are torch tensors.
+
+Changed
+^^^^^^^
+
+* Mark the :attr:`num_observations`, :attr:`num_actions` and :attr:`num_states` in :class:`DirectRLEnvCfg` as deprecated
+  in favor of :attr:`observation_space`, :attr:`action_space` and :attr:`state_space` respectively.
+* Mark the :attr:`num_observations`, :attr:`num_actions` and :attr:`num_states` in :class:`DirectMARLEnvCfg` as deprecated
+  in favor of :attr:`observation_spaces`, :attr:`action_spaces` and :attr:`state_space` respectively.
+
+
+0.25.1 (2024-10-10)
+~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixed potential issue where default joint positions can fall outside of the limits being set with Articulation's
+  ``write_joint_limits_to_sim`` API.
+
+
+0.25.0 (2024-10-06)
+~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added configuration classes for spawning assets from a list of individual asset configurations randomly
+  at the specified prim paths.
+
+
+0.24.20 (2024-10-07)
+~~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixed the :meth:`omni.isaac.lab.envs.mdp.events.randomize_rigid_body_material` function to
+  correctly sample friction and restitution from the given ranges.
+
+
+0.24.19 (2024-10-05)
+~~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added new functionalities to the FrameTransformer to make it more general. It is now possible to track:
+
+  * Target frames that aren't children of the source frame prim_path
+  * Target frames that are based upon the source frame prim_path
+
+
+0.24.18 (2024-10-04)
+~~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixes parsing and application of ``size`` parameter for :class:`~omni.isaac.lab.sim.spawn.GroundPlaneCfg` to correctly
+  scale the grid-based ground plane.
+
+
+0.24.17 (2024-10-04)
+~~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixed the deprecation notice for using ``pxr.Semantics``. The corresponding modules use ``Semantics`` module
+  directly.
+
+
+0.24.16 (2024-10-03)
+~~~~~~~~~~~~~~~~~~~~
+
+Changed
+^^^^^^^
+
+* Renamed the observation function :meth:`grab_images` to :meth:`image` to follow convention of noun-based naming.
+* Renamed the function :meth:`convert_perspective_depth_to_orthogonal_depth` to a shorter name
+  :meth:`omni.isaac.lab.utils.math.orthogonalize_perspective_depth`.
+
+
+0.24.15 (2024-09-20)
+~~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added :meth:`grab_images` to be able to use images for an observation term in manager-based environments.
+
+
+0.24.14 (2024-09-20)
+~~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added the method :meth:`convert_perspective_depth_to_orthogonal_depth` to convert perspective depth
+  images to orthogonal depth images. This is useful for the :meth:`~omni.isaac.lab.utils.math.unproject_depth`,
+  since it expects orthogonal depth images as inputs.
+
 
 0.24.13 (2024-09-08)
 ~~~~~~~~~~~~~~~~~~~~

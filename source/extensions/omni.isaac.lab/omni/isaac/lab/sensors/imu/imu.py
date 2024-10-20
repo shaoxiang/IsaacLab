@@ -25,10 +25,26 @@ if TYPE_CHECKING:
 
 
 class Imu(SensorBase):
-    """The inertia measurement unit sensor.
+    """The Inertia Measurement Unit (IMU) sensor.
 
-    The sensor can be attached to any :class:`RigidObject` or :class:`Articulation` in the scene. The sensor provides the linear acceleration and angular
-    velocity of the object in the body frame. The sensor also provides the orientation of the object in the world frame.
+    The sensor can be attached to any :class:`RigidObject` or :class:`Articulation` in the scene. The sensor provides complete state information.
+    The sensor is primarily used to provide the linear acceleration and angular velocity of the object in the body frame. The sensor also provides
+    the position and orientation of the object in the world frame and the angular acceleration and linear velocity in the body frame. The extra
+    data outputs are useful for simulating with or comparing against "perfect" state estimation.
+
+    .. note::
+
+        We are computing the accelerations using numerical differentiation from the velocities. Consequently, the
+        IMU sensor accuracy depends on the chosen phsyx timestep. For a sufficient accuracy, we recommend to keep the
+        timestep at least as 200Hz.
+
+    .. note::
+
+        It is suggested to use the OffsetCfg to define an IMU frame relative to a rigid body prim defined at the root of
+        a :class:`RigidObject` or  a prim that is defined by a non-fixed joint in an :class:`Articulation` (except for the
+        root of a fixed based articulation). The use frames with fixed joints and small mass/inertia to emulate a transform
+        relative to a body frame can result in lower performance and accuracy.
+
     """
 
     cfg: ImuCfg
@@ -61,10 +77,7 @@ class Imu(SensorBase):
     @property
     def data(self) -> ImuData:
         # update sensors if needed
-        try:
-            self._update_outdated_buffers()
-        except Exception as e:
-            pass
+        self._update_outdated_buffers()
         # return the data
         return self._data
 
@@ -133,23 +146,31 @@ class Imu(SensorBase):
             raise RuntimeError(
                 "The update function must be called before the data buffers are accessed the first time."
             )
+        # default to all sensors
+        if len(env_ids) == self._num_envs:
+            env_ids = slice(None)
         # obtain the poses of the sensors
         pos_w, quat_w = self._view.get_transforms()[env_ids].split([3, 4], dim=-1)
         quat_w = math_utils.convert_quat(quat_w, to="wxyz")
-        # store the poses
-        self._data.pos_w[env_ids] = pos_w + math_utils.quat_rotate(quat_w, self._offset_pos_b)
-        self._data.quat_w[env_ids] = math_utils.quat_mul(quat_w, self._offset_quat_b)
 
-        # obtain the velocities of the sensors
+        # store the poses
+        self._data.pos_w[env_ids] = pos_w + math_utils.quat_rotate(quat_w, self._offset_pos_b[env_ids])
+        self._data.quat_w[env_ids] = math_utils.quat_mul(quat_w, self._offset_quat_b[env_ids])
+
+        # get the offset from COM to link origin
+        com_pos_b = self._view.get_coms().to(self.device).split([3, 4], dim=-1)[0]
+
+        # obtain the velocities of the link COM
         lin_vel_w, ang_vel_w = self._view.get_velocities()[env_ids].split([3, 3], dim=-1)
-        # if an offset is present, the linear velocity has to be transformed taking the angular velocity into account
-        lin_vel_w += torch.cross(ang_vel_w, math_utils.quat_rotate(quat_w, self._offset_pos_b), dim=-1)
-        # obtain the acceleration of the sensors
-        lin_acc_w, ang_acc_w = self._view.get_accelerations()[env_ids].split([3, 3], dim=-1)
-        # if an offset is present, the linear acceleration has to be transformed taking the angular velocity and acceleration into account
-        lin_acc_w += torch.cross(ang_acc_w, math_utils.quat_rotate(quat_w, self._offset_pos_b), dim=-1) + torch.cross(
-            ang_vel_w, torch.cross(ang_vel_w, math_utils.quat_rotate(quat_w, self._offset_pos_b), dim=-1), dim=-1
+        # if an offset is present or the COM does not agree with the link origin, the linear velocity has to be
+        # transformed taking the angular velocity into account
+        lin_vel_w += torch.linalg.cross(
+            ang_vel_w, math_utils.quat_rotate(quat_w, self._offset_pos_b[env_ids] - com_pos_b[env_ids]), dim=-1
         )
+
+        # numerical derivative
+        lin_acc_w = (lin_vel_w - self._prev_lin_vel_w[env_ids]) / self._dt + self._gravity_bias_w[env_ids]
+        ang_acc_w = (ang_vel_w - self._prev_ang_vel_w[env_ids]) / self._dt
         # store the velocities
         self._data.lin_vel_b[env_ids] = math_utils.quat_rotate_inverse(self._data.quat_w[env_ids], lin_vel_w)
         self._data.ang_vel_b[env_ids] = math_utils.quat_rotate_inverse(self._data.quat_w[env_ids], ang_vel_w)
@@ -157,19 +178,29 @@ class Imu(SensorBase):
         self._data.lin_acc_b[env_ids] = math_utils.quat_rotate_inverse(self._data.quat_w[env_ids], lin_acc_w)
         self._data.ang_acc_b[env_ids] = math_utils.quat_rotate_inverse(self._data.quat_w[env_ids], ang_acc_w)
 
+        self._prev_lin_vel_w[env_ids] = lin_vel_w
+        self._prev_ang_vel_w[env_ids] = ang_vel_w
+
     def _initialize_buffers_impl(self):
         """Create buffers for storing data."""
         # data buffers
         self._data.pos_w = torch.zeros(self._view.count, 3, device=self._device)
         self._data.quat_w = torch.zeros(self._view.count, 4, device=self._device)
         self._data.quat_w[:, 0] = 1.0
-        self._data.lin_vel_b = torch.zeros(self._view.count, 3, device=self._device)
-        self._data.ang_vel_b = torch.zeros(self._view.count, 3, device=self._device)
-        self._data.lin_acc_b = torch.zeros(self._view.count, 3, device=self._device)
-        self._data.ang_acc_b = torch.zeros(self._view.count, 3, device=self._device)
+        self._data.lin_vel_b = torch.zeros_like(self._data.pos_w)
+        self._data.ang_vel_b = torch.zeros_like(self._data.pos_w)
+        self._data.lin_acc_b = torch.zeros_like(self._data.pos_w)
+        self._data.ang_acc_b = torch.zeros_like(self._data.pos_w)
+        self._prev_lin_vel_w = torch.zeros_like(self._data.pos_w)
+        self._prev_ang_vel_w = torch.zeros_like(self._data.pos_w)
+
         # store sensor offset transformation
         self._offset_pos_b = torch.tensor(list(self.cfg.offset.pos), device=self._device).repeat(self._view.count, 1)
         self._offset_quat_b = torch.tensor(list(self.cfg.offset.rot), device=self._device).repeat(self._view.count, 1)
+        # set gravity bias
+        self._gravity_bias_w = torch.tensor(list(self.cfg.gravity_bias), device=self._device).repeat(
+            self._view.count, 1
+        )
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         # set visibility of markers
@@ -207,6 +238,6 @@ class Imu(SensorBase):
                 device=self._device,
             )
         )
-        quat_w = math_utils.convert_orientation_convention(quat_opengl, "opengl", "world")
+        quat_w = math_utils.convert_camera_frame_orientation_convention(quat_opengl, "opengl", "world")
         # display markers
         self.acceleration_visualizer.visualize(base_pos_w, quat_w, arrow_scale)

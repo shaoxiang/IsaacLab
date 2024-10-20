@@ -178,11 +178,11 @@ class AppLauncher:
         * ``experience`` (str): The experience file to load when launching the SimulationApp. If a relative path
           is provided, it is resolved relative to the ``apps`` folder in Isaac Sim and Isaac Lab (in that order).
 
-          If provided as an empty string, the experience file is determined based on the headless flag:
+          If provided as an empty string, the experience file is determined based on the command-line flags:
 
           * If headless and enable_cameras are True, the experience file is set to ``isaaclab.python.headless.rendering.kit``.
           * If headless is False and enable_cameras is True, the experience file is set to ``isaaclab.python.rendering.kit``.
-          * If headless is False and enable_cameras is False, the experience file is set to ``isaaclab.python.kit``.
+          * If headless and enable_cameras are False, the experience file is set to ``isaaclab.python.kit``.
           * If headless is True and enable_cameras is False, the experience file is set to ``isaaclab.python.headless.kit``.
 
         Args:
@@ -254,7 +254,12 @@ class AppLauncher:
         arg_group.add_argument(
             "--verbose",  # Note: This is read by SimulationApp through sys.argv
             action="store_true",
-            help="Enable verbose terminal output from the SimulationApp.",
+            help="Enable verbose-level log output from the SimulationApp.",
+        )
+        arg_group.add_argument(
+            "--info",  # Note: This is read by SimulationApp through sys.argv
+            action="store_true",
+            help="Enable info-level log output from the SimulationApp.",
         )
         arg_group.add_argument(
             "--experience",
@@ -552,6 +557,8 @@ class AppLauncher:
                 " The file does not exist."
             )
 
+        # Resolve the absolute path of the experience file
+        self._sim_experience_file = os.path.abspath(self._sim_experience_file)
         print(f"[INFO][AppLauncher]: Loading experience file: {self._sim_experience_file}")
         # Remove all values from input keyword args which are not meant for SimulationApp
         # Assign all the passed settings to a dictionary for the simulation app
@@ -572,8 +579,16 @@ class AppLauncher:
         for key in found_modules:
             hacked_modules[key] = sys.modules[key]
             del sys.modules[key]
+
+        # disable sys stdout and stderr to avoid printing the warning messages
+        # this is mainly done to purge the print statements from the simulation app
+        if "--verbose" not in sys.argv and "--info" not in sys.argv:
+            sys.stdout = open(os.devnull, "w")  # noqa: SIM115
         # launch simulation app
         self._app = SimulationApp(self._sim_app_config, experience=self._sim_experience_file)
+        # enable sys stdout and stderr
+        sys.stdout = sys.__stdout__
+
         # add Isaac Lab modules back to sys.modules
         for key, value in hacked_modules.items():
             sys.modules[key] = value

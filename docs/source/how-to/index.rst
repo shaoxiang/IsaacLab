@@ -36,6 +36,17 @@ a fixed base robot. This guide goes over the various considerations and steps to
 
     make_fixed_prim
 
+Spawning Multiple Assets
+------------------------
+
+This guide explains how to import and configure different assets in each environment. This is
+useful when you want to create diverse environments with different objects.
+
+.. toctree::
+    :maxdepth: 1
+
+    multi_asset_spawning
+
 Saving Camera Output
 --------------------
 
@@ -45,6 +56,17 @@ This guide explains how to save the camera output in Isaac Lab.
     :maxdepth: 1
 
     save_camera_output
+
+Estimate How Many Cameras Can Run On Your Machine
+-------------------------------------------------
+
+This guide demonstrates how to estimate the number of cameras one can run on their machine under the desired parameters.
+
+.. toctree::
+    :maxdepth: 1
+
+    estimate_how_many_cameras_can_run
+
 
 Drawing Markers
 ---------------
