@@ -29,7 +29,9 @@ cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
-
+# always enable cameras to record video
+if args_cli.video:
+    args_cli.enable_cameras = True
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -43,6 +45,7 @@ import torch
 
 from rsl_rl.runners import OnPolicyRunner
 
+from omni.isaac.lab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from omni.isaac.lab.utils.dict import print_dict
 
 import omni.isaac.lab_tasks  # noqa: F401
@@ -69,40 +72,38 @@ try:
     import rclpy
     from rclpy.qos import QoSProfile
     from std_msgs.msg import Header
-    from sensor_msgs.msg import PointCloud2, PointField, Imu
+    from sensor_msgs.msg import PointCloud2, PointField
+    from sensor_msgs.msg import Imu as ROS_IMU
     from sensor_msgs_py import point_cloud2
     print("import rclpy success!")
 except:
     print("import rclpy failed")
 
-data_queue = queue.Queue()  
+lidar_queue = queue.Queue()  
+imu_queue = queue.Queue() 
 
 class RobotDriver():
     def __init__(self):
         self.node = rclpy.create_node("sensor_driver_node")
         qos_profile = QoSProfile(depth=10)
         self.lidar_pub = self.node.create_publisher(PointCloud2, f'/point_cloud2', qos_profile)
-        self.imu_pub = self.node.create_publisher(Imu, f'/imu2', qos_profile)
+        self.imu_pub = self.node.create_publisher(ROS_IMU, f'/imu2', qos_profile)
         self.imu_rate = self.node.create_rate(50)
-        self.imu_annotator = None
 
-    def run(self):
+    def run_lidar(self):
         while rclpy.ok():  
-            sensor_data = data_queue.get()  # 阻塞，直到队列中有元素  
-            self.pub_pointcloud(sensor_data["lidar"])
-            # self.publish_imu(sensor_data["imu"])
-            data_queue.task_done()  # 表示前一个入队任务已经完成  
+            sensor_data = lidar_queue.get()  # 阻塞，直到队列中有元素  
+            self.pub_pointcloud(sensor_data)
+            # self.pub_imu_data(sensor_data["imu"])
+            lidar_queue.task_done()  # 表示前一个入队任务已经完成  
             rclpy.spin_once(self.node, timeout_sec=0.01)
 
     def run_imu(self):
         while rclpy.ok():
-            # data = self.imu_annotator
-            frame = self.imu_annotator.get_current_frame()
-            base_lin = frame["lin_acc"]
-            ang_vel = frame["ang_vel"]
-            orientation = frame["orientation"]
-            self.publish_imu(base_lin, ang_vel, orientation)
-            self.imu_rate.sleep()
+            sensor_data = imu_queue.get()  # 阻塞，直到队列中有元素  
+            self.pub_imu_data(sensor_data)
+            imu_queue.task_done()  # 表示前一个入队任务已经完成  
+            rclpy.spin_once(self.node, timeout_sec=0.02)
 
     def pub_pointcloud(self, data_points):
         try:
@@ -130,68 +131,35 @@ class RobotDriver():
         except Exception as error:
             carb.log_error("pub point cloud failed!" + str(error))
 
-    def publish_imu(self, linear_acc_data, angular_velocity_data, orientation_data):
-        # print("imu_data:", linear_acc_data, angular_velocity_data, orientation_data)
-        # ImuData(pos_w=tensor([[45.3174, -8.7304,  3.1546]], device='cuda:0'), 
-        # quat_w=tensor([[0.7127, 0.2179, 0.1149, 0.6568]], device='cuda:0'), 
-        # lin_vel_b=tensor([[-0.5269, -1.5967,  1.4445]], device='cuda:0'), 
-        # ang_vel_b=tensor([[-1.0782,  0.4206, -1.2723]], device='cuda:0'), 
-        # lin_acc_b=tensor([[-1.1804, -4.8344,  3.8072]], device='cuda:0'), 
-        # ang_acc_b=tensor([[-74.4913, -31.6464,  12.2332]], device='cuda:0'))
+    def pub_imu_data(self, imu_data):
+        try:
+            linear_acc_data = imu_data.lin_acc_b[0]
+            angular_velocity_data = imu_data.ang_vel_b[0]
+            orientation_data = imu_data.quat_w[0]
+            # print("imu_data:", linear_acc_data, angular_velocity_data, orientation_data)
+            imu_trans = ROS_IMU()
+            imu_trans.header.stamp = self.node.get_clock().now().to_msg()
+            imu_trans.header.frame_id = f"imu_link"
+            imu_trans.linear_acceleration.x = linear_acc_data[0].item()
+            imu_trans.linear_acceleration.y = linear_acc_data[1].item()
+            imu_trans.linear_acceleration.z = linear_acc_data[2].item()
+            imu_trans.angular_velocity.x = angular_velocity_data[0].item()
+            imu_trans.angular_velocity.y = angular_velocity_data[1].item()
+            imu_trans.angular_velocity.z = angular_velocity_data[2].item()
+            # (w, x, y, z)
+            imu_trans.orientation.x = orientation_data[1].item()
+            imu_trans.orientation.y = orientation_data[2].item()
+            imu_trans.orientation.z = orientation_data[3].item()
+            imu_trans.orientation.w = orientation_data[0].item()
+            self.imu_pub.publish(imu_trans)
+        except Exception as error:
+            carb.log_error("pub imu data failed!" + str(error))
 
-        print("imu_data:", linear_acc_data, angular_velocity_data, orientation_data)
-        imu_trans = Imu()
-        imu_trans.header.stamp = self.node.get_clock().now().to_msg()
-        imu_trans.header.frame_id = f"imu_link"
-        imu_trans.linear_acceleration.x = linear_acc_data[0].item()
-        imu_trans.linear_acceleration.y = linear_acc_data[1].item()
-        imu_trans.linear_acceleration.z = linear_acc_data[2].item()
-        imu_trans.angular_velocity.x = angular_velocity_data[0].item()
-        imu_trans.angular_velocity.y = angular_velocity_data[1].item()
-        imu_trans.angular_velocity.z = angular_velocity_data[2].item()
-        # (w, x, y, z)
-        imu_trans.orientation.x = orientation_data[1].item()
-        imu_trans.orientation.y = orientation_data[2].item()
-        imu_trans.orientation.z = orientation_data[3].item()
-        imu_trans.orientation.w = orientation_data[0].item()
-        self.imu_pub.publish(imu_trans)
-
-    # def publish_imu(self, imu_data):
-    #     # print("imu_data:", linear_acc_data, angular_velocity_data, orientation_data)
-    #     # ImuData(pos_w=tensor([[45.3174, -8.7304,  3.1546]], device='cuda:0'), 
-    #     # quat_w=tensor([[0.7127, 0.2179, 0.1149, 0.6568]], device='cuda:0'), 
-    #     # lin_vel_b=tensor([[-0.5269, -1.5967,  1.4445]], device='cuda:0'), 
-    #     # ang_vel_b=tensor([[-1.0782,  0.4206, -1.2723]], device='cuda:0'), 
-    #     # lin_acc_b=tensor([[-1.1804, -4.8344,  3.8072]], device='cuda:0'), 
-    #     # ang_acc_b=tensor([[-74.4913, -31.6464,  12.2332]], device='cuda:0'))
-
-    #     linear_acc_data = imu_data.lin_acc_b[0]
-    #     angular_velocity_data = imu_data.ang_vel_b[0]
-    #     orientation_data = imu_data.quat_w[0]
-    #     print("imu_data:", linear_acc_data, angular_velocity_data, orientation_data)
-    #     imu_trans = Imu()
-    #     imu_trans.header.stamp = self.node.get_clock().now().to_msg()
-    #     imu_trans.header.frame_id = f"imu_link"
-    #     imu_trans.linear_acceleration.x = linear_acc_data[0].item()
-    #     imu_trans.linear_acceleration.y = linear_acc_data[1].item()
-    #     imu_trans.linear_acceleration.z = linear_acc_data[2].item()
-    #     imu_trans.angular_velocity.x = angular_velocity_data[0].item()
-    #     imu_trans.angular_velocity.y = angular_velocity_data[1].item()
-    #     imu_trans.angular_velocity.z = angular_velocity_data[2].item()
-    #     # (w, x, y, z)
-    #     imu_trans.orientation.x = orientation_data[1].item()
-    #     imu_trans.orientation.y = orientation_data[2].item()
-    #     imu_trans.orientation.z = orientation_data[3].item()
-    #     imu_trans.orientation.w = orientation_data[0].item()
-    #     self.imu_pub.publish(imu_trans)
-
-def run_ros2_node(imu_annotator):  
+def run_ros2_node():  
     try:
         rclpy.init()  
         base_node = RobotDriver()
-        base_node.imu_annotator = imu_annotator
-
-        ros_thread = threading.Thread(target=base_node.run)
+        ros_thread = threading.Thread(target=base_node.run_lidar)
         ros_thread.start()
         ros_thread = threading.Thread(target=base_node.run_imu)
         ros_thread.start()
@@ -207,13 +175,6 @@ def add_scene_tunnel():
     except:
         print("Error loading custom environment.")
 
-from omni.isaac.sensor import IMUSensor
-def add_imu():
-    imu_sensor = IMUSensor(
-        prim_path="/World/envs/env_0/Robot/body/Imu_Sensor",
-    )
-    return imu_sensor
-
 def main():
     """Play with RSL-RL agent."""
     # parse configuration
@@ -228,15 +189,28 @@ def main():
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
     resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
-    # log_dir = os.path.dirname(resume_path)
+    log_dir = os.path.dirname(resume_path)
 
     # create isaac environment
-    env_gym = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array")
-    # wrap around environment for rsl-rl
-    env = RslRlVecEnvWrapper(env_gym)
+    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+    # wrap for video recording
+    if args_cli.video:
+        video_kwargs = {
+            "video_folder": os.path.join(log_dir, "videos", "play"),
+            "step_trigger": lambda step: step == 0,
+            "video_length": args_cli.video_length,
+            "disable_logger": True,
+        }
+        print("[INFO] Recording videos during training.")
+        print_dict(video_kwargs, nesting=4)
+        env = gym.wrappers.RecordVideo(env, **video_kwargs)
 
-    imu_annotator = add_imu()
-    run_ros2_node(imu_annotator)
+    # convert to single-agent instance if required by the RL algorithm
+    if isinstance(env.unwrapped, DirectMARLEnv):
+        env = multi_agent_to_single_agent(env)
+
+    # wrap around environment for rsl-rl
+    env = RslRlVecEnvWrapper(env)
 
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # load previously trained model
@@ -255,6 +229,8 @@ def main():
     #     ppo_runner.alg.actor_critic, normalizer=ppo_runner.obs_normalizer, path=export_model_dir, filename="policy.onnx"
     # )
 
+    run_ros2_node()
+
     # reset environment
     obs, obs_raw = env.get_observations()
     timestep = 0
@@ -267,10 +243,6 @@ def main():
             # env stepping
             obs, _, _, extras = env.step(actions)
 
-            frame = imu_annotator.get_current_frame()
-            base_lin = frame["lin_acc"]
-            ang_vel = frame["ang_vel"]
-            orientation = frame["orientation"]
             # print("base_lin:", base_lin, "ang_vel:", ang_vel, "orientation:", orientation)
 
             # joint_efforts = torch.zeros_like(env_gym.env._actions)
@@ -280,11 +252,15 @@ def main():
             # print("extras observations:", extras["observations"]["lidar"])
             if 'lidar' in extras["observations"]:
                 lidar_data = extras["observations"]["lidar"]
-                data_queue.put(extras["observations"]) 
- 
+                lidar_queue.put(lidar_data) 
+
+            if 'imu' in extras["observations"]:
+                imu_data = extras["observations"]["imu"]
+                imu_queue.put(imu_data) 
+
     # close the simulator
     env.close()
-
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     # run the main function

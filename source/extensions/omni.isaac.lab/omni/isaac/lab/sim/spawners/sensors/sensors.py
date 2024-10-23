@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import omni.isaac.core.utils.prims as prim_utils
 import omni.kit.commands
 import omni.log
-from pxr import Sdf, Usd
+from pxr import Sdf, Usd, Gf
 
 from omni.isaac.lab.sim.utils import clone
 from omni.isaac.lab.utils import to_camel_case

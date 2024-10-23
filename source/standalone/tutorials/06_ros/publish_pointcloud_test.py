@@ -9,7 +9,7 @@ This script demonstrates how to run IsaacSim via the AppLauncher
 .. code-block:: bash
 
     # Usage
-    ./isaaclab.sh -p source/standalone/tutorials/00_sim/publish_pointcloud.py
+    ./isaaclab.sh -p source/standalone/tutorials/06_ros/publish_pointcloud_test.py
 
 """
 
@@ -158,6 +158,8 @@ def main():
     while simulation_app.is_running():
         # perform step
         sim.step()
+
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     # run the main function

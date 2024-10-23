@@ -11,6 +11,7 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, ClassVar
 
+import carb
 import omni.log
 import omni.physics.tensors.impl.api as physx
 import warp as wp

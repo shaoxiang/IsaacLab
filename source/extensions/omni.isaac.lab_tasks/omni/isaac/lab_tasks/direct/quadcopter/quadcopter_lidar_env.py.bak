@@ -6,11 +6,11 @@
 from __future__ import annotations
 
 import torch
-from scipy.spatial.transform import Rotation
+from scipy.spatial.transform import Rotation as R
 import numpy as np
 
 import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import Articulation, ArticulationCfg
+from omni.isaac.lab.assets import Articulation, ArticulationCfg, RigidObject, RigidObjectCfg, AssetBase, AssetBaseCfg
 from omni.isaac.lab.envs import DirectRLEnv, DirectRLEnvCfg
 from omni.isaac.lab.envs.ui import BaseEnvWindow
 from omni.isaac.lab.markers import VisualizationMarkers
@@ -26,7 +26,10 @@ from omni.isaac.lab.utils.math import subtract_frame_transforms, yaw_angle, wrap
 from omni.isaac.lab_assets import CRAZYFLIE_CFG  # isort: skip
 from omni.isaac.lab.markers import CUBOID_MARKER_CFG  # isort: skip
 from omni.isaac.lab.sensors import RTXRayCaster, RTXRayCasterCfg
+from omni.isaac.lab.sensors.imu import Imu, ImuCfg
 from omni.isaac.lab.markers.config import BLUE_ARROW_X_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG, RED_ARROW_X_MARKER_CFG
+
+from omni.isaac.lab.utils.assets import NVIDIA_NUCLEUS_DIR
 
 class QuadcopterEnvWindow(BaseEnvWindow):
     """Window manager for the Quadcopter environment."""
@@ -93,6 +96,24 @@ class QuadcopterLidarEnvCfg(DirectRLEnvCfg):
         offset=RTXRayCasterCfg.OffsetCfg(),
         spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.HESAI_PandarXT_32)
     )
+
+    # imu
+    imu = ImuCfg(
+        prim_path= "/World/envs/env_.*/Robot/body",
+        offset = ImuCfg.OffsetCfg(),
+    )
+
+    # lights
+    sky_light_cfg = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=900.0,
+            texture_file=f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/kloofendal_48d_partly_cloudy_4k.hdr",
+            visible_in_primary_ray=False,
+        ),
+    )
+    # sky_light_object = AssetBase(cfg=sky_light_cfg)
+
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=2.5, replicate_physics=True)
 
@@ -105,7 +126,6 @@ class QuadcopterLidarEnvCfg(DirectRLEnvCfg):
     lin_vel_reward_scale = -0.05
     ang_vel_reward_scale = -0.01
     distance_to_goal_reward_scale = 15.0
-
 
 class QuadcopterLidarEnv(DirectRLEnv):
     cfg: QuadcopterLidarEnvCfg
@@ -120,6 +140,11 @@ class QuadcopterLidarEnv(DirectRLEnv):
         # Goal position
         self._desired_pos_w = torch.zeros(self.num_envs, 3, device=self.device)
         self._desired_quat_w = torch.zeros(self.num_envs, 4, device=self.device)
+
+        self._target_point_index = torch.zeros(self.num_envs, device=self.device, dtype=int)
+        self._is_goal_reached = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
+        self._goal_distance = torch.ones(self.num_envs, device=self.device)
+        self._path_max_count = torch.ones(self.num_envs, device=self.device)
 
         # Logging
         self._episode_sums = {
@@ -138,6 +163,7 @@ class QuadcopterLidarEnv(DirectRLEnv):
 
         # add handle for debug visualization (this is set to a valid handle inside set_debug_vis)
         self.set_debug_vis(self.cfg.debug_vis)
+        self._target_path_point, self._target_path_quat = self.tunnel_flight_path()
 
     def _setup_scene(self):
         self._robot = Articulation(self.cfg.robot)
@@ -151,11 +177,25 @@ class QuadcopterLidarEnv(DirectRLEnv):
         self.scene.clone_environments(copy_from_source=False)
         self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
         # add lights
-        light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
-        light_cfg.func("/World/Light", light_cfg)
+        light_cfg = sim_utils.DomeLightCfg(intensity=200000.0, color=(0.8, 0.8, 0.8))
+        light_cfg.func("/World/Light", light_cfg, translation=(8.0, 8.0, 20.0))
+        
+        # self._sky_light = AssetBase(self.cfg.sky_light_cfg)
+        # self._sky_light = self.cfg.sky_light_cfg.class_type(self.cfg.sky_light_cfg)
+
+        sky_light_cfg = sim_utils.DomeLightCfg(
+            intensity = 10000.0,
+            texture_file=f"{NVIDIA_NUCLEUS_DIR}/Assets/Skies/Cloudy/kloofendal_48d_partly_cloudy_4k.hdr",
+            visible_in_primary_ray=False,
+        )
+        sky_light_cfg.func("/World/SkyLight", sky_light_cfg)
+
         # add lidar
         self._lidar = RTXRayCaster(self.cfg.lidar)
         self.scene.sensors["lidar"] = self._lidar
+        # add imu
+        self._imu = Imu(self.cfg.imu)
+        self.scene.sensors["imu"] = self._imu
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._actions = actions.clone().clamp(-1.0, 1.0)
@@ -188,14 +228,33 @@ class QuadcopterLidarEnv(DirectRLEnv):
                     return None
                 
     def imu_process(self):
-        data = {"linear_acceleration": self._robot.data.root_lin_vel_b[0, :], "angular_velocity": self._robot.data.root_ang_vel_b[0, :], "orientation": self._robot.data.root_state_w[0, 3:7]}
-        print("imu data:", data)
+        self._imu.update(dt=0.02, force_recompute=True)
+        data = self._imu.data
+        # 'ang_acc_b', 'ang_vel_b', 'lin_acc_b', 'lin_vel_b', 'pos_w', 'quat_w'
+        # print("imu data:", data)        
         return data
+    
+    def update_desired_pos(self, indices):
+        # print("self._target_point_index[indices]:", self._target_point_index[indices])
+        for idx in indices:
+            if self._target_point_index[idx] < self._path_max_count[idx]:
+                self._desired_pos_w[idx,] = self._target_path_point[self._target_point_index[idx]]
+                # self._desired_pos_w[idx, :2] += self._terrain.env_origins[idx, :2]
+                self._desired_quat_w[idx,] = self._target_path_quat[self._target_point_index[idx]]
+                # print("desired_pos_w:", self._desired_pos_w[idx,])
+            else:
+                self.episode_length_buf[idx] = self.max_episode_length
         
     def _get_observations(self) -> dict:
         desired_pos_b, _ = subtract_frame_transforms(
             self._robot.data.root_state_w[:, :3], self._robot.data.root_state_w[:, 3:7], self._desired_pos_w
         )
+
+        # 使用.nonzero()获取True值的索引（对于一维tensor，我们只关心第一个维度）  
+        indices = self._is_goal_reached.nonzero()[:, 0]
+        # print("indices:", indices)
+        self._target_point_index[indices] += 1
+        self.update_desired_pos(indices)
         
         yaw_robo = yaw_angle(self._robot.data.root_quat_w)
         yaw_desired = yaw_angle(self._desired_quat_w)
@@ -223,6 +282,7 @@ class QuadcopterLidarEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)
         ang_vel = torch.sum(torch.square(self._robot.data.root_ang_vel_b), dim=1)
+        self._is_goal_reached = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1) < 0.05
         distance_to_goal = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1)
         distance_to_goal_mapped = 1 - torch.tanh(distance_to_goal / 0.8)
         rewards = {
@@ -270,10 +330,8 @@ class QuadcopterLidarEnv(DirectRLEnv):
 
         self._actions[env_ids] = 0.0
         # Sample new commands
-        self._desired_pos_w[env_ids, :2] = torch.zeros_like(self._desired_pos_w[env_ids, :2]).uniform_(-2.0, 2.0)
-        self._desired_pos_w[env_ids, :2] += self._terrain.env_origins[env_ids, :2]
-        self._desired_pos_w[env_ids, 2] = torch.zeros_like(self._desired_pos_w[env_ids, 2]).uniform_(0.5, 1.5)
-        self._desired_quat_w[env_ids,] = random_orientation(num = 1, device=self.device)
+        self._target_point_index[env_ids] = 0
+        self.update_desired_pos(env_ids)
 
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
@@ -320,6 +378,63 @@ class QuadcopterLidarEnv(DirectRLEnv):
         # display markers
         self.base_target_goal_visualizer.visualize(self._desired_pos_w, self._desired_quat_w)
         self.base_quadcopter_visualizer.visualize(quadcopter_pos_w, quadcopter_quat_w)
+
+    def vector_to_quaternion(self, direction_vector):
+        
+        # Step 3: Normalize the Direction Vector
+        direction_vector = direction_vector / np.linalg.norm(direction_vector)
+        
+        # Step 4: Handle zero vector (no rotation)
+        if np.allclose(direction_vector, np.zeros(3)):
+            return np.array([1.0, 0.0, 0.0, 0.0])  # Identity quaternion (no rotation)
+
+        # Step 5: Rotation axis (normalized direction vector)
+        rotation_axis = direction_vector
+
+        # Step 6: Calculate the rotation angle (using arctan2 for quadrant handling)
+        angle = np.arctan2(direction_vector[1], direction_vector[0])  # Angle around z-axis
+
+        # Step 7: Compute the Quaternion
+        quaternion = R.from_euler('z', angle, degrees=False).as_quat()
+        
+        quaternion = np.roll(quaternion, shift=1)
+        
+        return quaternion
+
+    def interpolate_equidistant(self, point1, point2, interpolation_distance):
+        """  
+        对线段进行等距离插值 
+        """  
+        distance_between_point = np.linalg.norm(np.array(point1) - np.array(point2))
+
+        # print("distance_between_point:", distance_between_point, point1, point2)
+
+        if distance_between_point < interpolation_distance:
+            return [point1]
+        else:
+            num_points = int(distance_between_point / interpolation_distance)
+            # 初始化插值点列表  
+            points = [point1]
+
+            dx = (point2[0] - point1[0]) / num_points
+            dy = (point2[1] - point1[1]) / num_points
+            dz = (point2[2] - point1[2]) / num_points
+
+            # print("dx:", dx, dy, dz, num_points)
+            
+            # 计算并添加插值点  
+            for i in range(1, num_points):  
+                x = point1[0] + i * dx  
+                y = point1[1] + i * dy
+                z = point1[2] + i * dz
+                points.append([x, y, z]) 
+
+            point_last = np.array([point1[0] + num_points * dx, point1[1] + num_points * dy, point1[2] + num_points * dz])
+            distance_between_point = np.linalg.norm(point_last - point2)
+            if distance_between_point > interpolation_distance:
+                points.append(point_last) 
+    
+        return points
 
     def tunnel_flight_path(self):
         path_points = [(16.857454, 4.733797, 3), (23.785446, 0.7394848, 3), (37.238182, -5.8582616, 3), (50.593536, -10.577381, 3), (61.530663, -8.310559, 3), (66.24306, -6.116083, 3), (89.07483, 16.195843, 3), (86.178894, 15.035391, 3.0), (71.75105, 0.41696435, 3.0), (55.901173, -11.562683, 3.0), (40.07982, -6.569447, 3.0), (7.67947, 7.4372797, 3.0)]

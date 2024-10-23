@@ -5,12 +5,13 @@
 
 from __future__ import annotations
 
+import gymnasium as gym
 import torch
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 
 import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import Articulation, ArticulationCfg, RigidObject, RigidObjectCfg, AssetBase, AssetBaseCfg
+from omni.isaac.lab.assets import Articulation, ArticulationCfg, AssetBaseCfg
 from omni.isaac.lab.envs import DirectRLEnv, DirectRLEnvCfg
 from omni.isaac.lab.envs.ui import BaseEnvWindow
 from omni.isaac.lab.markers import VisualizationMarkers
@@ -23,7 +24,7 @@ from omni.isaac.lab.utils.math import subtract_frame_transforms, yaw_angle, wrap
 ##
 # Pre-defined configs
 ##
-from omni.isaac.lab_assets import CRAZYFLIE_CFG, CRAZYFLIE_IMU_CFG  # isort: skip
+from omni.isaac.lab_assets import CRAZYFLIE_CFG  # isort: skip
 from omni.isaac.lab.markers import CUBOID_MARKER_CFG  # isort: skip
 from omni.isaac.lab.sensors import RTXRayCaster, RTXRayCasterCfg
 from omni.isaac.lab.sensors.imu import Imu, ImuCfg
@@ -56,9 +57,9 @@ class QuadcopterLidarEnvCfg(DirectRLEnvCfg):
     # env
     episode_length_s = 100.0
     decimation = 2
-    num_actions = 4
-    num_observations = 13
-    num_states = 0
+    action_space = 4
+    observation_space = 12
+    state_space = 0
     debug_vis = True
 
     ui_window_class_type = QuadcopterEnvWindow
@@ -97,18 +98,6 @@ class QuadcopterLidarEnvCfg(DirectRLEnvCfg):
         spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.HESAI_PandarXT_32)
     )
 
-    # imu_ball = RigidObjectCfg(
-    #     prim_path="/World/envs/env_.*/Robot/body/IMU",
-    #     init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.1)),
-    #     spawn=sim_utils.SphereCfg(
-    #         radius=0.01,
-    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-    #         mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
-    #         collision_props=sim_utils.CollisionPropertiesCfg(),
-    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
-    #     ),
-    # )
-
     # imu
     imu = ImuCfg(
         prim_path= "/World/envs/env_.*/Robot/body",
@@ -124,15 +113,14 @@ class QuadcopterLidarEnvCfg(DirectRLEnvCfg):
             visible_in_primary_ray=False,
         ),
     )
-    # sky_light_object = AssetBase(cfg=sky_light_cfg)
 
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=2.5, replicate_physics=True)
 
     # robot
-    robot: ArticulationCfg = CRAZYFLIE_IMU_CFG.replace(prim_path="/World/envs/env_.*/Robot")
-    thrust_to_weight = 1.9
-    moment_scale = 0.01
+    robot: ArticulationCfg = CRAZYFLIE_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    thrust_to_weight = 1.9 * 2.0 / 3.0
+    moment_scale = 0.01 / 4.0
 
     # reward scales
     lin_vel_reward_scale = -0.05
@@ -147,7 +135,7 @@ class QuadcopterLidarEnv(DirectRLEnv):
         super().__init__(cfg, render_mode, **kwargs)
 
         # Total thrust and moment applied to the base of the quadcopter
-        self._actions = torch.zeros(self.num_envs, self.cfg.num_actions, device=self.device)
+        self._actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
         self._thrust = torch.zeros(self.num_envs, 1, 3, device=self.device)
         self._moment = torch.zeros(self.num_envs, 1, 3, device=self.device)
         # Goal position
@@ -180,7 +168,7 @@ class QuadcopterLidarEnv(DirectRLEnv):
 
     def _setup_scene(self):
         self._robot = Articulation(self.cfg.robot)
-        self.cfg.robot.init_state.pos = (8.0, 8.0, 4.0)
+        self.cfg.robot.init_state.pos = (15.0, 5.0, 2.0)
         self.scene.articulations["robot"] = self._robot
 
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
@@ -192,9 +180,6 @@ class QuadcopterLidarEnv(DirectRLEnv):
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=200000.0, color=(0.8, 0.8, 0.8))
         light_cfg.func("/World/Light", light_cfg, translation=(8.0, 8.0, 20.0))
-        
-        # self._sky_light = AssetBase(self.cfg.sky_light_cfg)
-        # self._sky_light = self.cfg.sky_light_cfg.class_type(self.cfg.sky_light_cfg)
 
         sky_light_cfg = sim_utils.DomeLightCfg(
             intensity = 10000.0,
@@ -212,8 +197,8 @@ class QuadcopterLidarEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._actions = actions.clone().clamp(-1.0, 1.0)
-        self._thrust[:, 0, 2] = self.cfg.thrust_to_weight * self._robot_weight * (self._actions[:, 0] + 1.0) / 3.0
-        self._moment[:, 0, :] = self.cfg.moment_scale * self._actions[:, 1:] / 4.0
+        self._thrust[:, 0, 2] = self.cfg.thrust_to_weight * self._robot_weight * (self._actions[:, 0] + 1.0) / 2.0
+        self._moment[:, 0, :] = self.cfg.moment_scale * self._actions[:, 1:]
 
     def _apply_action(self):
         self._robot.set_external_force_and_torque(self._thrust, self._moment, body_ids=self._body_id)
@@ -241,10 +226,8 @@ class QuadcopterLidarEnv(DirectRLEnv):
                     return None
                 
     def imu_process(self):
-        # my_imu_data = {"linear_acceleration": -10.0 * self._robot.data.projected_gravity_b[0], "angular_velocity": self._robot.data.root_ang_vel_b[0, :], "orientation": self._robot.data.root_state_w[0, 3:7]}
-        # print("my_imu_data:", my_imu_data)
+        self._imu.update(dt=0.02, force_recompute=True)
         data = self._imu.data
-        data.lin_acc_b[0] = -10.0 * self._robot.data.projected_gravity_b[0]
         # 'ang_acc_b', 'ang_vel_b', 'lin_acc_b', 'lin_vel_b', 'pos_w', 'quat_w'
         # print("imu data:", data)        
         return data
@@ -259,7 +242,7 @@ class QuadcopterLidarEnv(DirectRLEnv):
                 # print("desired_pos_w:", self._desired_pos_w[idx,])
             else:
                 self.episode_length_buf[idx] = self.max_episode_length
-        
+
     def _get_observations(self) -> dict:
         desired_pos_b, _ = subtract_frame_transforms(
             self._robot.data.root_state_w[:, :3], self._robot.data.root_state_w[:, 3:7], self._desired_pos_w
@@ -270,7 +253,7 @@ class QuadcopterLidarEnv(DirectRLEnv):
         # print("indices:", indices)
         self._target_point_index[indices] += 1
         self.update_desired_pos(indices)
-        
+
         yaw_robo = yaw_angle(self._robot.data.root_quat_w)
         yaw_desired = yaw_angle(self._desired_quat_w)
         angle_error = wrap_to_pi(yaw_robo - yaw_desired).unsqueeze(1)
@@ -281,7 +264,6 @@ class QuadcopterLidarEnv(DirectRLEnv):
                 self._robot.data.root_ang_vel_b,
                 self._robot.data.projected_gravity_b,
                 desired_pos_b,
-                angle_error,
             ],
             dim=-1,
         )
@@ -297,8 +279,8 @@ class QuadcopterLidarEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)
         ang_vel = torch.sum(torch.square(self._robot.data.root_ang_vel_b), dim=1)
-        self._is_goal_reached = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1) < 0.05
         distance_to_goal = torch.linalg.norm(self._desired_pos_w - self._robot.data.root_pos_w, dim=1)
+        self._is_goal_reached = distance_to_goal < 0.1
         distance_to_goal_mapped = 1 - torch.tanh(distance_to_goal / 0.8)
         rewards = {
             "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
@@ -313,7 +295,7 @@ class QuadcopterLidarEnv(DirectRLEnv):
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         time_out = self.episode_length_buf >= self.max_episode_length - 1
-        died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.01, self._robot.data.root_pos_w[:, 2] > 15.0)
+        died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.1, self._robot.data.root_pos_w[:, 2] > 15.0)
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
@@ -338,6 +320,8 @@ class QuadcopterLidarEnv(DirectRLEnv):
         self.extras["log"].update(extras)
 
         self._robot.reset(env_ids)
+        self._imu.reset(env_ids)
+        
         super()._reset_idx(env_ids)
         if len(env_ids) == self.num_envs:
             # Spread out the resets to avoid spikes in training when many environments reset at a similar time
