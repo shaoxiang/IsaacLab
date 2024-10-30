@@ -87,7 +87,7 @@ class RobotDriver():
         self.node = rclpy.create_node("sensor_driver_node")
         qos_profile = QoSProfile(depth=10)
         self.lidar_pub = self.node.create_publisher(PointCloud2, f'/point_cloud2', qos_profile)
-        self.imu_pub = self.node.create_publisher(ROS_IMU, f'/imu2', qos_profile)
+        self.imu_pub = self.node.create_publisher(ROS_IMU, f'/imu', qos_profile)
         self.imu_rate = self.node.create_rate(50)
 
     def run_lidar(self):
@@ -96,7 +96,7 @@ class RobotDriver():
             self.pub_pointcloud(sensor_data)
             # self.pub_imu_data(sensor_data["imu"])
             lidar_queue.task_done()  # 表示前一个入队任务已经完成  
-            rclpy.spin_once(self.node, timeout_sec=0.01)
+            rclpy.spin_once(self.node, timeout_sec=0.05)
 
     def run_imu(self):
         while rclpy.ok():

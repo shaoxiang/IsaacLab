@@ -267,11 +267,16 @@ class QuadcopterLidarEnv(DirectRLEnv):
             ],
             dim=-1,
         )
-        lidar_data = self.lidar_process()
+
+        if self.common_step_counter % 4 == 0:
+            lidar_data = self.lidar_process()
+        else:
+            lidar_data = None
+            
         imu_data = self.imu_process()
 
         if lidar_data is None:
-            observations = {"policy": obs}
+            observations = {"policy": obs, "imu": imu_data}
         else:
             observations = {"policy": obs, "lidar": lidar_data, "imu": imu_data}
         return observations
