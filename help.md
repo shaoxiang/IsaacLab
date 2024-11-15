@@ -28,10 +28,11 @@ python source/standalone/workflows/rl_games/train.py --task=Isaac-Franka-Cabinet
 ### Cartpole
 
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-Direct-v0
-python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --headless --enable_cameras --video
+python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --headless --enable_cameras --video --num_envs 512
+
+python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-ResNet18-v0 --headless --enable_cameras --video
 
 python source/standalone/workflows/rl_games/play.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --checkpoint logs/rl_games/cartpole_camera_direct/2024-06-06_11-01-07/nn/cartpole_camera_direct.pth
-
 
 python -m tensorboard.main --logdir logs/rl_games/cartpole_camera_direct
 
@@ -135,3 +136,13 @@ python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-Form-
 ### helps
 ./isaaclab.bat -p -m pip show skrl
 ./isaaclab.bat -p -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade skrl
+
+### 更新Isaac Lab
+.\isaaclab.bat --install
+
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple transformers
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple einops
+
+### asserts error
+#### 将目录替换成你自己的下载的即可
+.\isaac-sim.bat --/persistent/isaac/asset_root/default="D:\omniverse\Downloads\Assets\Isaac\4.2"
