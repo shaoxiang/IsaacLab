@@ -17,6 +17,42 @@ python source/standalone/tutorials/04_sensors/run_ray_caster_camera.py
 ## demos
 python source/standalone/demos/arms.py
 
+## Manage-Based Ant
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Ant-v0 --num_envs 32
+
+## Manage-Based Humanoid
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Humanoid-v0 --num_envs 32
+
+## Manage-Based navigation
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Navigation-Flat-Anymal-C-v0 --num_envs 32
+Isaac-Navigation-Flat-Anymal-C-Play-v0
+
+## Manage-Based locomotion velocity
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-Spot-v0 --num_envs 32
+
+## Manage-Based Flat-H1
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-H1-v0 --headless --video
+
+## Manage-Based Rough-H1
+
+Observation Manager: <ObservationManager> contains 1 groups.
++----------------------------------------------------------+
+| Active Observation Terms in Group: 'policy' (shape: (256,)) |
++-----------+--------------------------------+-------------+
+|   Index   | Name                           |    Shape    |
++-----------+--------------------------------+-------------+
+|     0     | base_lin_vel                   |     (3,)    |
+|     1     | base_ang_vel                   |     (3,)    |
+|     2     | projected_gravity              |     (3,)    |
+|     3     | velocity_commands              |     (3,)    |
+|     4     | joint_pos                      |    (19,)    |
+|     5     | joint_vel                      |    (19,)    |
+|     6     | actions                        |    (19,)    |
+|     7     | height_scan                    |    (187,)   |
++-----------+--------------------------------+-------------+
+
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Rough-H1-v0 --headless --video
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Rough-H1-Play-v0
 
 ## quadcopter env set
 python source/standalone/my_test/quadcopter_camera.py
@@ -31,6 +67,7 @@ python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-Direc
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --headless --enable_cameras --video --num_envs 512
 
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-ResNet18-v0 --headless --enable_cameras --video
+python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-TheiaTiny-v0 --headless --enable_cameras --video
 
 python source/standalone/workflows/rl_games/play.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --checkpoint logs/rl_games/cartpole_camera_direct/2024-06-06_11-01-07/nn/cartpole_camera_direct.pth
 
@@ -54,6 +91,14 @@ python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Quadcopter-Direct
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Quadcopter-Direct-play-v0 --headless --checkpoint model_11600.pt
 
 python source/standalone/workflows/sb3/train.py --task=Isaac-Quadcopter-Direct-v0 --headless
+
+### UAV
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Direct-v0 --num_envs 8
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-PTZ-Direct-v0 --num_envs 8
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Control-Direct-v0 --num_envs 8
+
+### Manage-Based 无人机
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-v0 --num_envs 32
 
 #### 平滑控制版本
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-Smooth-v0 --headless
@@ -99,6 +144,9 @@ python source/standalone/tutorials/06_ros/imu_sensor_to_ros.py
 #### lifelong_slam
 python .\source\standalone\lidar_slam\play.py --task=Isaac-Quadcopter-Direct-Lidar-v0 --load_run 2024-10-22_13-08-21 --checkpoint model_1000.pt
 
+### 大模型机器人
+
+python -m tensorboard.main --logdir logs/eureka/Isaac-Cartpole-Direct-v0/2024-12-05_11-22-51
 
 ## 修改意见
 _isaac_sim\exts\omni.isaac.sensor\omni\isaac\sensor\scripts\menu.py

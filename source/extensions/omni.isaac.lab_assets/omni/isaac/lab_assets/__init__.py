@@ -41,3 +41,4 @@ from .shadow_hand import *
 from .unitree import *
 from .universal_robots import *
 from .jetbot import *
+from .uav import *
