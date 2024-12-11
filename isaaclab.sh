@@ -328,7 +328,7 @@ while [[ $# -gt 0 ]]; do
             fi
             # run the formatter over the repository
             # check if pre-commit is installed
-            if [ ! command -v pre-commit &>/dev/null ]; then
+            if ! command -v pre-commit &>/dev/null; then
                 echo "[INFO] Installing pre-commit..."
                 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pre-commit
             fi
