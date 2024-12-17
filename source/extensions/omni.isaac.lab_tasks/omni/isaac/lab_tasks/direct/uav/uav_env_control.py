@@ -52,10 +52,10 @@ class UAVControlEnvWindow(BaseEnvWindow):
 @configclass
 class UAVControlEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 5.0
+    episode_length_s = 10.0
     decimation = 2
     action_space = 4
-    observation_space = 12
+    observation_space = 13
     state_space = 0
     debug_vis = False
 
@@ -99,8 +99,8 @@ class UAVControlEnvCfg(DirectRLEnvCfg):
     moment_scale = 0.05
 
     # reward scales
-    lin_vel_reward_scale = -0.05
-    ang_vel_reward_scale = -0.01
+    lin_vel_reward_scale = 10.0
+    ang_vel_reward_scale = 1.0
     error_to_goal_reward_scale = 15.0
 
 
@@ -282,7 +282,7 @@ class UAVPTZControlEnv(DirectRLEnv):
             for key in [
                 "lin_vel",
                 "ang_vel",
-                "error_to_goal",
+                # "error_to_goal",
             ]
         }
         # Get specific body indices
@@ -294,7 +294,10 @@ class UAVPTZControlEnv(DirectRLEnv):
         self.ptz_joint_x_idx, _ = self._robot.find_joints("jointX")
         self.ptz_joint_y_idx, _ = self._robot.find_joints("jointY")
         self.ptz_joint_z_idx, _ = self._robot.find_joints("jointZ")
-
+        self.ptz_joint_x_scale = 0.9 * 100.0
+        self.ptz_joint_y_scale = 0.9 * 50.0
+        self.ptz_joint_z_scale = 0.9 * 150.0
+        
         # add handle for debug visualization (this is set to a valid handle inside set_debug_vis)
         self.set_debug_vis(self.cfg.debug_vis)
 
@@ -320,9 +323,9 @@ class UAVPTZControlEnv(DirectRLEnv):
     def _apply_action(self):
         self._robot.set_external_force_and_torque(self._thrust, self._moment, body_ids=self._body_id)
 
-        self._robot.set_joint_position_target(self._ptz_action[:, :, 0], joint_ids=self.ptz_joint_x_idx)
-        self._robot.set_joint_position_target(self._ptz_action[:, :, 1], joint_ids=self.ptz_joint_y_idx)
-        self._robot.set_joint_position_target(self._ptz_action[:, :, 2], joint_ids=self.ptz_joint_z_idx)
+        self._robot.set_joint_position_target(self.ptz_joint_x_scale * self._ptz_action[:, :, 0], joint_ids=self.ptz_joint_x_idx)
+        self._robot.set_joint_position_target(self.ptz_joint_y_scale * self._ptz_action[:, :, 1], joint_ids=self.ptz_joint_y_idx)
+        self._robot.set_joint_position_target(self.ptz_joint_z_scale * self._ptz_action[:, :, 2], joint_ids=self.ptz_joint_z_idx)
 
     def _get_observations(self) -> dict:
 
@@ -339,23 +342,40 @@ class UAVPTZControlEnv(DirectRLEnv):
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
-        lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)
-        ang_vel = torch.sum(torch.square(self._robot.data.root_ang_vel_b), dim=1)
+        # lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)
+        # ang_vel = torch.sum(torch.square(self._robot.data.root_ang_vel_b), dim=1)
 
         vx = torch.square(self._robot.data.root_lin_vel_b[:, 0] - self._desired_cmd[:, 0])
         vy = torch.square(self._robot.data.root_lin_vel_b[:, 1] - self._desired_cmd[:, 1])
         vz = torch.square(self._robot.data.root_lin_vel_b[:, 2] - self._desired_cmd[:, 2])
         wz = torch.square(self._robot.data.root_ang_vel_b[:, 2] - self._desired_cmd[:, 3])
 
-        error_to_goal = vx + vy + vz + wz
-        error_to_goal_mapped = 1 - torch.tanh(error_to_goal)
+        # print("vx:",vx,"vy:",vy,"vz:",vz,"wz:",wz)
+        # print("vx_:",self._robot.data.root_lin_vel_b[:, 0],"vy_:",self._robot.data.root_lin_vel_b[:, 1],"vz_:",self._robot.data.root_lin_vel_b[:, 2],"wz_:",self._robot.data.root_ang_vel_b[:, 2])
         
+        # lin_vel_error_to_goal = vx + vy + vz
+        lin_vel_error_to_goal_mapped = 3.0 - torch.tanh(vx) - torch.tanh(vy) - torch.tanh(vz)
+
+        # ang_vel_error_to_goal = wz
+        ang_vel_error_to_goal_mapped = 1.0 - torch.tanh(wz)
+
+        # print("lin_vel_error_to_goal:", lin_vel_error_to_goal, lin_vel_error_to_goal_mapped, "ang_vel_error_to_goal:", ang_vel_error_to_goal, ang_vel_error_to_goal_mapped)
+        
+        # rewards = {
+        #     "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
+        #     "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
+        #     # "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
+        # }
+
         rewards = {
-            "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
-            "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
-            "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
+            "lin_vel": lin_vel_error_to_goal_mapped * self.cfg.lin_vel_reward_scale * self.step_dt,
+            "ang_vel": ang_vel_error_to_goal_mapped * self.cfg.ang_vel_reward_scale * self.step_dt,
+            # "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
         }
+
         reward = torch.sum(torch.stack(list(rewards.values())), dim=0)
+
+        # print("rewards:", rewards, "reward:", reward, "dt:", self.step_dt)
         # Logging
         for key, value in rewards.items():
             self._episode_sums[key] += value
@@ -395,11 +415,13 @@ class UAVPTZControlEnv(DirectRLEnv):
             self.episode_length_buf = torch.randint_like(self.episode_length_buf, high=int(self.max_episode_length))
 
         self._actions[env_ids] = 0.0
-        # Sample new commands        
-        # self._desired_cmd[env_ids, 0] = torch.zeros_like(self._desired_cmd[env_ids, 0]).uniform_(-5.0, 5.0)
-        # self._desired_cmd[env_ids, 1] = torch.zeros_like(self._desired_cmd[env_ids, 1]).uniform_(-5.0, 5.0)
-        # self._desired_cmd[env_ids, 2] = torch.zeros_like(self._desired_cmd[env_ids, 2]).uniform_(-5.0, 5.0)
-        # self._desired_cmd[env_ids, 3] = torch.zeros_like(self._desired_cmd[env_ids, 3]).uniform_(-5.0, 5.0)
+        # Sample new commands
+        lin_vel = 5.0
+        lin_ang = 5.0        
+        self._desired_cmd[env_ids, 0] = torch.zeros_like(self._desired_cmd[env_ids, 0]).uniform_(-lin_vel, lin_vel)
+        self._desired_cmd[env_ids, 1] = torch.zeros_like(self._desired_cmd[env_ids, 1]).uniform_(-lin_vel, lin_vel)
+        self._desired_cmd[env_ids, 2] = torch.zeros_like(self._desired_cmd[env_ids, 2]).uniform_(-lin_vel, lin_vel)
+        self._desired_cmd[env_ids, 3] = torch.zeros_like(self._desired_cmd[env_ids, 3]).uniform_(-lin_ang, lin_ang)
         
         # Reset robot state
         joint_pos = self._robot.data.default_joint_pos[env_ids]
@@ -409,9 +431,7 @@ class UAVPTZControlEnv(DirectRLEnv):
         self._robot.write_root_pose_to_sim(default_root_state[:, :7], env_ids)
         self._robot.write_root_velocity_to_sim(default_root_state[:, 7:], env_ids)
         self._robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
-
-        print("joint_pos:", joint_pos.shape, torch.zeros_like(self._ptz_action[env_ids, :]).uniform_(-1.0, 1.0).shape)
-        self._ptz_action[env_ids, :] = torch.zeros_like(self._ptz_action[env_ids, :]).uniform_(-1.0, 1.0) + joint_pos[:,4:7]
+        self._ptz_action[env_ids, :] = torch.zeros_like(self._ptz_action[env_ids, :]).uniform_(-1.0, 1.0) + joint_pos[:,4:7].unsqueeze(1)
 
     # def _set_debug_vis_impl(self, debug_vis: bool):
     #     # create markers if necessary for the first tome

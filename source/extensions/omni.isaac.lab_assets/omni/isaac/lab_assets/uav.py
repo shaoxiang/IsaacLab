@@ -20,6 +20,7 @@ UAV_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
         usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/UAV/uav_ptz/uav_ptz.usd",
+        activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=10.0,
@@ -36,6 +37,7 @@ UAV_CFG = ArticulationCfg(
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 5.0),
+        rot=(0.70711, 0.70711, 0.0, 0.0),
         joint_pos={
             ".*": 0.0,
         },
