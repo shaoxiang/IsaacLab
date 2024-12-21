@@ -9,7 +9,7 @@ import gymnasium as gym
 import torch
 
 import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import Articulation, ArticulationCfg, AssetBaseCfg
+from omni.isaac.lab.assets import Articulation, ArticulationCfg, AssetBaseCfg, RigidObject, RigidObjectCfg
 from omni.isaac.lab.envs import DirectRLEnv, DirectRLEnvCfg
 from omni.isaac.lab.envs.ui import BaseEnvWindow
 from omni.isaac.lab.markers import VisualizationMarkers
@@ -19,6 +19,7 @@ from omni.isaac.lab.terrains import TerrainImporterCfg
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.math import subtract_frame_transforms
 from omni.isaac.lab.sensors import TiledCamera, TiledCameraCfg, ContactSensor, ContactSensorCfg
+from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
 
 ##
 # Pre-defined configs
@@ -52,9 +53,29 @@ class PTZControlEnvWindow(BaseEnvWindow):
 
 class PTZSceneCfg(InteractiveSceneCfg):
     # person
-    character_cfg: AssetBaseCfg = AssetBaseCfg(
-        prim_path="/World/Character",
-        spawn=sim_utils.UsdFileCfg(usd_path=f"D:/Share folders/demo/Collected_enemy/enemy.usd"),
+    # character_cfg: AssetBaseCfg = AssetBaseCfg(
+    #     prim_path="/World/Character",
+    #     spawn=sim_utils.UsdFileCfg(usd_path=f"D:/Share folders/demo/Collected_enemy/enemy.usd"),
+    # )
+
+    # table = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Table",
+    #     spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd",
+    #     ),
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=(0.55, 0.0, 0.0), rot=(0.70711, 0.0, 0.0, 0.70711)),
+    # )
+
+    character_cfg: RigidObjectCfg = RigidObjectCfg(
+        prim_path="/World/envs/env_.*/person",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0, 12.0), rot=(0.70711, 0.70711, 0.0, 0.0)),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/People/Characters/biped_demo/biped_demo_meters.usd",
+            scale=(1.0, 1.0, 1.0),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                disable_gravity=True,
+            ),
+        ),
     )
 
 @configclass
@@ -63,7 +84,7 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
     episode_length_s = 5.0
     decimation = 2
     action_space = 4 + 3
-    observation_space = 13
+    observation_space = 15 + 7
     state_space = 0
     debug_vis = False
     max_person_num = 3
@@ -118,11 +139,24 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
 
     # contact sensor
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/body", update_period=0.01, history_length=3, debug_vis=False, filter_prim_paths_expr = ["/World/Character/enemy"]
+        prim_path="/World/envs/env_.*/Robot/body", update_period=0.01, history_length=3, debug_vis=False, filter_prim_paths_expr = ["/World/envs/env_.*/person"]
+    )
+
+    # add character
+    character_cfg: RigidObjectCfg = RigidObjectCfg(
+        prim_path="/World/envs/env_.*/person",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0, 12.0), rot=(0.70711, 0.70711, 0.0, 0.0)),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/People/Characters/biped_demo/biped_demo_meters.usd",
+            scale=(1.0, 1.0, 1.0),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                disable_gravity=True,
+            ),
+        ),
     )
 
     # scene
-    scene: PTZSceneCfg = PTZSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=4.0, replicate_physics=True)
 
     # robot
     robot: ArticulationCfg = UAV_CFG.replace(prim_path="/World/envs/env_.*/Robot")
@@ -134,6 +168,7 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
     ang_vel_reward_scale = 1.0
     error_to_goal_reward_scale = 15.0
     contact_forces_scale = 0.1
+    ptz_control_scale = 1.0
     yolo_reward_scale = 1.0
 
     num_channels = 3
@@ -147,11 +182,13 @@ class PTZControlEnv(DirectRLEnv):
 
         # Total thrust and moment applied to the base of the uav
         self._actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
+        self._last_actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
         self._thrust = torch.zeros(self.num_envs, 1, 3, device=self.device)
         self._moment = torch.zeros(self.num_envs, 1, 3, device=self.device)
         # Goal cmd
         self._desired_cmd = torch.zeros(self.num_envs, 4, device=self.device)
         self._ptz_action = torch.zeros(self.num_envs, 1, 3, device=self.device)
+        self._last_ptz_action = torch.zeros(self.num_envs, 1, 3, device=self.device)
         self._yolo_rewards = torch.zeros(self.num_envs, device=self.device)
         
         # Logging
@@ -161,6 +198,7 @@ class PTZControlEnv(DirectRLEnv):
                 # "lin_vel",
                 # "ang_vel",
                 # "error_to_goal",
+                "ptz_control_error",
                 "contact_forces",
                 "yolo_rewards"
             ]
@@ -178,6 +216,9 @@ class PTZControlEnv(DirectRLEnv):
         self.ptz_joint_y_scale = 0.9 * 50.0
         self.ptz_joint_z_scale = 0.9 * 150.0
 
+        # character
+        self._character_body_id = self._character.find_bodies("Body_Mesh")[0]
+
         # Load yolo model
         self.yolo_model = YOLO("./source/third_part/YOLO/yolo11n.pt")
 
@@ -185,7 +226,6 @@ class PTZControlEnv(DirectRLEnv):
         file_content = omni.client.read_file("./source/policy/UAV/policy.pt")[2]
         file = io.BytesIO(memoryview(file_content).tobytes())
         self.policy = torch.jit.load(file, map_location=self.device)
-        # self.policy = None
         
         # add handle for debug visualization (this is set to a valid handle inside set_debug_vis)
         self.set_debug_vis(self.cfg.debug_vis)
@@ -197,19 +237,15 @@ class PTZControlEnv(DirectRLEnv):
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
         self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
+        # add Character rigidbody
+        self._character = RigidObject(self.cfg.character_cfg)
+        self.scene.rigid_objects["character"] = self._character
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
-        # self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
+        self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
-        # add Character
-        
-        # self._character = AssetBaseCfg(
-        #     prim_path="/Character",
-        #     spawn=sim_utils.UsdFileCfg(usd_path=f"D:/Share folders/demo/Collected_enemy/enemy.usd"),
-        # )
-
         # add camera
         self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
         self.scene.sensors["tiled_camera"] = self._tiled_camera
@@ -234,6 +270,10 @@ class PTZControlEnv(DirectRLEnv):
         self._moment[:, 0, :] = self.cfg.moment_scale * low_policy_actions[:, 1:]
         self._robot.set_external_force_and_torque(self._thrust, self._moment, body_ids=self._body_id)
 
+        character_thrust = torch.zeros_like(self._thrust).uniform_(-100.0, 100.0)
+        character_moment = torch.zeros_like(self._moment).uniform_(-1.0, 1.0)
+        self._character.set_external_force_and_torque(character_thrust, character_moment, body_ids=self._character_body_id)
+        
     def _pre_physics_step(self, actions: torch.Tensor):
         # _desired_cmd 和 ptz control
         self._actions = actions.clone().clamp(-1.0, 1.0)
@@ -242,11 +282,12 @@ class PTZControlEnv(DirectRLEnv):
         self._ptz_action[:, 0, 0] = self._actions[:, 4]
         self._ptz_action[:, 0, 1] = self._actions[:, 5]
         self._ptz_action[:, 0, 2] = self._actions[:, 6]
-
+        
     def _apply_action(self):
         self._robot.set_joint_position_target(self.ptz_joint_x_scale * self._ptz_action[:, :, 0], joint_ids=self.ptz_joint_x_idx)
         self._robot.set_joint_position_target(self.ptz_joint_y_scale * self._ptz_action[:, :, 1], joint_ids=self.ptz_joint_y_idx)
         self._robot.set_joint_position_target(self.ptz_joint_z_scale * self._ptz_action[:, :, 2], joint_ids=self.ptz_joint_z_idx)
+        self.low_policy_action()
 
     def yolo_results_filter(self, yolo_results, max_person = 3, choose_device = 'cuda'):
         new_results = torch.zeros(self.num_envs, max_person, 5, device = choose_device)
@@ -293,7 +334,10 @@ class PTZControlEnv(DirectRLEnv):
         # print("results boxes:", results[0].boxes, results[0].boxes.cls)
         # print("results boxes len:", len(results[0].boxes), len(results[0].boxes.cls))
         yolo_obs = self.yolo_results_filter(results, max_person = self.cfg.max_person_num)
-        obs = yolo_obs.view(self.num_envs, -1)
+        
+        yolo_obs_view = yolo_obs.view(self.num_envs, -1)
+        obs = torch.cat((yolo_obs_view, self._last_actions.clone()), dim = -1)
+        self._last_actions = self._actions.clone()
         observations = {"policy": obs}
         return observations
 
@@ -321,11 +365,15 @@ class PTZControlEnv(DirectRLEnv):
         max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
         # self._is_collision_occurred = max_net_contact_forces > 0.05
         # print("max_net_contact_forces:", max_net_contact_forces)
+        ptz_control_error = 0.1 - torch.sum(torch.square(self._last_ptz_action[:,0,:] - self._ptz_action[:,0,:]), dim=1)
+        ptz_control_error = torch.clamp(ptz_control_error, max=0.0)
+        self._last_ptz_action = self._ptz_action.clone()
 
         rewards = {
             # "lin_vel": lin_vel_error_to_goal_mapped * self.cfg.lin_vel_reward_scale * self.step_dt,
             # "ang_vel": ang_vel_error_to_goal_mapped * self.cfg.ang_vel_reward_scale * self.step_dt,
             # "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
+            "ptz_control_error": ptz_control_error * self.cfg.ptz_control_scale * self.step_dt, 
             "contact_forces": max_net_contact_forces * self.cfg.contact_forces_scale * self.step_dt,
             "yolo_rewards": self._yolo_rewards * self.cfg.yolo_reward_scale * self.step_dt
         }
@@ -366,6 +414,7 @@ class PTZControlEnv(DirectRLEnv):
         self.extras["log"].update(extras)
 
         self._robot.reset(env_ids)
+        self._character.reset(env_ids)
         super()._reset_idx(env_ids)
         if len(env_ids) == self.num_envs:
             # Spread out the resets to avoid spikes in training when many environments reset at a similar time
@@ -375,14 +424,19 @@ class PTZControlEnv(DirectRLEnv):
         # Sample new commands        
         
         # Reset robot state
+        terrain_origins = self._terrain.env_origins[env_ids]
         joint_pos = self._robot.data.default_joint_pos[env_ids]
         joint_vel = self._robot.data.default_joint_vel[env_ids]
         default_root_state = self._robot.data.default_root_state[env_ids]
-        default_root_state[:, :3] += self._terrain.env_origins[env_ids]
+        default_root_state[:, :3] += terrain_origins
         self._robot.write_root_pose_to_sim(default_root_state[:, :7], env_ids)
         self._robot.write_root_velocity_to_sim(default_root_state[:, 7:], env_ids)
         self._robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
         self._ptz_action[env_ids, :] = torch.zeros_like(self._ptz_action[env_ids, :]).uniform_(-1.0, 1.0) + joint_pos[:,4:7].unsqueeze(1)
+
+        character_state = self._character.data.default_root_state[env_ids].clone()
+        character_state[:, :3] += (terrain_origins + torch.zeros_like(terrain_origins).uniform_(-5.0, 5.0))
+        self._character.write_root_state_to_sim(character_state, env_ids)
 
     # def _set_debug_vis_impl(self, debug_vis: bool):
     #     # create markers if necessary for the first tome

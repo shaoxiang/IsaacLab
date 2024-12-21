@@ -16,6 +16,7 @@ python source/standalone/tutorials/04_sensors/run_ray_caster_camera.py
 
 ## demos
 python source/standalone/demos/arms.py
+python source/standalone/demos/multi_asset.py
 
 ## Manage-Based Ant
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Ant-v0 --num_envs 32
@@ -96,6 +97,18 @@ python source/standalone/workflows/sb3/train.py --task=Isaac-Quadcopter-Direct-v
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Direct-v0 --num_envs 8
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-PTZ-Direct-v0 --num_envs 8
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Control-Direct-v0 --num_envs 8
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Control-Direct-v0 --num_envs 8192 --headless --resume True --load_run 2024-12-12_13-27-40 --checkpoint model_5000.pt
+
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 2 --headless --enable_cameras --checkpoint model_9000.pt
+
+python source/standalone/workflows/rsl_rl/play_jit.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 2 --headless --enable_cameras --checkpoint policy.pt
+
+python source/standalone/workflows/rsl_rl/play_onnx.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 2 --headless --enable_cameras --checkpoint policy.onnx
+
+### PTZ-UAV
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --video
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --resume True
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 8 --enable_cameras
 
 ### Manage-Based 无人机
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-v0 --num_envs 32
@@ -191,6 +204,20 @@ python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-Form-
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple transformers
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple einops
 
+单独升级 rsl_rl
+pip install git+https://github.com/leggedrobotics/rsl_rl.git
+
 ### asserts error
 #### 将目录替换成你自己的下载的即可
 .\isaac-sim.bat --/persistent/isaac/asset_root/default="D:\omniverse\Downloads\Assets\Isaac\4.2"
+
+#### 如果pytorch出了问题
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+pip install torch==2.4.0 torchvision==0.19.0 --index-url https://download.pytorch.org/whl/cu118
+或者：
+pip install torch==2.4.0+cu118 torchvision==0.19.0+cu118 -f https://download.pytorch.org/whl/torch
+
+### YOLO
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple ultralytics --no-deps
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple onnxruntime-gpu --no-deps

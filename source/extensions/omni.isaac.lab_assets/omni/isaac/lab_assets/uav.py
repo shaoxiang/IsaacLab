@@ -37,7 +37,7 @@ UAV_CFG = ArticulationCfg(
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 5.0),
-        rot=(0.70711, 0.70711, 0.0, 0.0),
+        rot=(0.0, 1.0, 0.0, 0.0),
         joint_pos={
             ".*": 0.0,
         },
@@ -59,8 +59,10 @@ UAV_CFG = ArticulationCfg(
         ),
         "ptz": ImplicitActuatorCfg(
             joint_names_expr=["joint.*"],
-            stiffness=0.0,
-            damping=0.0,
+            effort_limit=300,
+            velocity_limit=100.0,
+            stiffness=40.0,
+            damping=10.0,
         )
     },
 )

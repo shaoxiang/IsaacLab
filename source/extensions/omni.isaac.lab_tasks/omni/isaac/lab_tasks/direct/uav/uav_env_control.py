@@ -9,7 +9,7 @@ import gymnasium as gym
 import torch
 
 import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import Articulation, ArticulationCfg
+from omni.isaac.lab.assets import Articulation, ArticulationCfg, RigidObjectCfg, RigidObject
 from omni.isaac.lab.envs import DirectRLEnv, DirectRLEnvCfg
 from omni.isaac.lab.envs.ui import BaseEnvWindow
 from omni.isaac.lab.markers import VisualizationMarkers
@@ -18,6 +18,7 @@ from omni.isaac.lab.sim import SimulationCfg
 from omni.isaac.lab.terrains import TerrainImporterCfg
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.math import subtract_frame_transforms
+from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
 
 ##
 # Pre-defined configs
@@ -103,7 +104,6 @@ class UAVControlEnvCfg(DirectRLEnvCfg):
     ang_vel_reward_scale = 1.0
     error_to_goal_reward_scale = 15.0
 
-
 class UAVControlEnv(DirectRLEnv):
     cfg: UAVControlEnvCfg
 
@@ -123,7 +123,7 @@ class UAVControlEnv(DirectRLEnv):
             for key in [
                 "lin_vel",
                 "ang_vel",
-                "error_to_goal",
+                # "error_to_goal",
             ]
         }
         # Get specific body indices
@@ -142,6 +142,9 @@ class UAVControlEnv(DirectRLEnv):
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
         self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
+        # rigidbody
+        self._character = RigidObject(self.cfg.character_cfg)
+        self.scene.rigid_objects["character"] = self._character
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
         self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
@@ -172,23 +175,28 @@ class UAVControlEnv(DirectRLEnv):
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
-        lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)
-        ang_vel = torch.sum(torch.square(self._robot.data.root_ang_vel_b), dim=1)
-
         vx = torch.square(self._robot.data.root_lin_vel_b[:, 0] - self._desired_cmd[:, 0])
         vy = torch.square(self._robot.data.root_lin_vel_b[:, 1] - self._desired_cmd[:, 1])
         vz = torch.square(self._robot.data.root_lin_vel_b[:, 2] - self._desired_cmd[:, 2])
         wz = torch.square(self._robot.data.root_ang_vel_b[:, 2] - self._desired_cmd[:, 3])
 
-        error_to_goal = vx + vy + vz + wz
-        error_to_goal_mapped = 1 - torch.tanh(error_to_goal)
+        # lin_vel_error_to_goal = vx + vy + vz
+        lin_vel_error_to_goal_mapped = 3.0 - torch.tanh(vx) - torch.tanh(vy) - torch.tanh(vz)
+
+        # ang_vel_error_to_goal = wz
+        ang_vel_error_to_goal_mapped = 1.0 - torch.tanh(wz)
+
+        # print("lin_vel_error_to_goal:", lin_vel_error_to_goal, lin_vel_error_to_goal_mapped, "ang_vel_error_to_goal:", ang_vel_error_to_goal, ang_vel_error_to_goal_mapped)
         
         rewards = {
-            "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
-            "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
-            "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
+            "lin_vel": lin_vel_error_to_goal_mapped * self.cfg.lin_vel_reward_scale * self.step_dt,
+            "ang_vel": ang_vel_error_to_goal_mapped * self.cfg.ang_vel_reward_scale * self.step_dt,
+            # "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
         }
+
         reward = torch.sum(torch.stack(list(rewards.values())), dim=0)
+
+        # print("rewards:", rewards, "reward:", reward, "dt:", self.step_dt)
         # Logging
         for key, value in rewards.items():
             self._episode_sums[key] += value
