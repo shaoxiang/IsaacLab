@@ -17,6 +17,16 @@ python source/standalone/tutorials/04_sensors/run_ray_caster_camera.py
 ## demos
 python source/standalone/demos/arms.py
 python source/standalone/demos/multi_asset.py
+python source/standalone/tutorials/00_sim/spawn_prims.py
+
+python source/standalone/tutorials/01_assets/run_deformable_object.py
+python source/standalone/tutorials/01_assets/run_rigid_object.py
+python source/standalone/tutorials/01_assets/run_tennis_ball.py
+python source/standalone/demos/multi_asset.py
+python source/standalone/demos/multi_asset_more.py
+
+## Tests
+python source/extensions/omni.isaac.lab/test/assets/check_ridgeback_franka.py
 
 ## Manage-Based Ant
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Ant-v0 --num_envs 32
@@ -109,6 +119,13 @@ python source/standalone/workflows/rsl_rl/play_onnx.py --task=Isaac-PTZ-Control-
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --video
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --resume True
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 8 --enable_cameras
+
+### Kaya
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Direct-v0 --num_envs 256 --headless
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Tennis-v0 --num_envs 64
+
+### teddy_bear
+python source/standalone/environments/state_machine/lift_teddy_bear.py --num_envs 4
 
 ### Manage-Based 无人机
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-v0 --num_envs 32
@@ -221,3 +238,6 @@ pip install torch==2.4.0+cu118 torchvision==0.19.0+cu118 -f https://download.pyt
 ### YOLO
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple ultralytics --no-deps
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple onnxruntime-gpu --no-deps
+
+## Tips
+1、添加可变形物体，核心要注意 replicate_physics 为 False

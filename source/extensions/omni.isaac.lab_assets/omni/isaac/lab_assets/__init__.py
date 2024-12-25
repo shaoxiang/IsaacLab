@@ -42,3 +42,5 @@ from .unitree import *
 from .universal_robots import *
 from .jetbot import *
 from .uav import *
+from .kaya import *
+from .deformable_objects import *
