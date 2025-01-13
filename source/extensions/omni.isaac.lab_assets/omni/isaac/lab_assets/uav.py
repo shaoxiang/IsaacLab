@@ -37,7 +37,7 @@ UAV_CFG = ArticulationCfg(
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 5.0),
-        rot=(0.0, 1.0, 0.0, 0.0),
+        # rot=(0.0, 1.0, 0.0, 0.0),
         joint_pos={
             ".*": 0.0,
         },

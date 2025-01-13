@@ -115,6 +115,8 @@ python source/standalone/workflows/rsl_rl/play_jit.py --task=Isaac-PTZ-Control-D
 
 python source/standalone/workflows/rsl_rl/play_onnx.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 2 --headless --enable_cameras --checkpoint policy.onnx
 
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-UAV-Fly-v0 --num_envs 4 --enable_cameras --headless --livestream 1
+
 ### PTZ-UAV
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --video
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --resume True
@@ -123,6 +125,17 @@ python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direc
 ### Kaya
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Direct-v0 --num_envs 256 --headless
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Tennis-v0 --num_envs 64
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Kaya-Tennis-Play-v0 --num_envs 2
+
+### Duck
+#### Direct
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-Duck-Direct-v0 --num_envs 4096 --headless
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-Duck-Direct-v0 --num_envs 4096 --headless --resume True
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duck-Direct-v0 --num_envs 4 --headless --livestream 1
+
+#### Managed
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-Duck-v0 --num_envs 4096 --headless
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duck-Play-v0
 
 ### teddy_bear
 python source/standalone/environments/state_machine/lift_teddy_bear.py --num_envs 4
@@ -241,3 +254,11 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple onnxruntime-gpu --no-dep
 
 ## Tips
 1、添加可变形物体，核心要注意 replicate_physics 为 False
+
+
+## 人形机器人动捕数据播放
+git clone https://hf-mirror.com/datasets/unitreerobotics/LAFAN1_Retargeting_Dataset
+
+# 将目录替换成你自己的下载的即可
+.\isaac-sim.bat --/persistent/isaac/asset_root/default="D:\omniverse\Downloads\Assets\Isaac\4.2"
+./isaac-sim.sh --/persistent/isaac/asset_root/default="/home/ai/omniverse/Downloads/Isaac/4.2"

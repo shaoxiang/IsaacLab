@@ -44,3 +44,4 @@ from .jetbot import *
 from .uav import *
 from .kaya import *
 from .deformable_objects import *
+from .duck import *
