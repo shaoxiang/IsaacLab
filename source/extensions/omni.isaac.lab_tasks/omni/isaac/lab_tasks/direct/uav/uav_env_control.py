@@ -96,13 +96,13 @@ class UAVControlEnvCfg(DirectRLEnvCfg):
 
     # robot
     robot: ArticulationCfg = UAV_CFG.replace(prim_path="/World/envs/env_.*/Robot")
-    thrust_to_weight = 10.0
+    thrust_to_weight = 5.0
     moment_scale = 0.05
 
     # reward scales
-    lin_vel_reward_scale = 10.0
-    ang_vel_reward_scale = 1.0
-    error_to_goal_reward_scale = 15.0
+    lin_vel_reward_scale = 1.0
+    ang_vel_reward_scale = 0.1
+    error_to_goal_reward_scale = 1.5
 
 class UAVControlEnv(DirectRLEnv):
     cfg: UAVControlEnvCfg
@@ -142,9 +142,6 @@ class UAVControlEnv(DirectRLEnv):
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
         self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
-        # rigidbody
-        self._character = RigidObject(self.cfg.character_cfg)
-        self.scene.rigid_objects["character"] = self._character
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
         self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])

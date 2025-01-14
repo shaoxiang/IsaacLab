@@ -22,7 +22,7 @@ from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
 
 DUCK_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/DUCK/duck.usd",
+        usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/Duck/duck.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -92,7 +92,7 @@ DUCK_CFG = ArticulationCfg(
 
 DUCK_BDX_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/DUCK/bdx.usd",
+        usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/Duck/bdx.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -104,23 +104,23 @@ DUCK_BDX_CFG = ArticulationCfg(
             max_depenetration_velocity=1.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=4, solver_velocity_iteration_count=0
+            enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=0
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.45),
         joint_pos={
-            ".*_ankle": 0.0,
-            ".*_knee": 0.0,
-            ".*_hip_pitch": 0.0,
-            ".*_hip_roll": 0.0,
-            ".*_hip_yaw": 0.0,
-            "head_roll": 0.0,
+            ".*_ankle": 0.0,            # (-40.0, 40.0)
+            ".*_knee": 0.0,             # (-80.0, 80.0)
+            ".*_hip_pitch": 0.0,        # (-60.0, 60.0)
+            ".*_hip_roll": 0.0,         # (-30.0, 30.0)
+            ".*_hip_yaw": 0.0,          # (-30.0, 30.0)
+            "head_roll": 0.0,           # (-50.0, 50.0)
             "head_yaw": 0.0,
-            "head_pitch": 1.0472, # (0, 150.0)
-            "neck_pitch": -0.8727, # (-180.0, -20.0)
-            "left_antenna": -1.5708, # (-200.0 -20.0)
-            "right_antenna": 1.5708, # (20, 200.0)
+            "head_pitch": 1.0472,       # (0, 150.0)
+            "neck_pitch": -0.8727,      # (-180.0, -20.0)
+            "left_antenna": -1.5708,    # (-200.0 -20.0)
+            "right_antenna": 1.5708,    # (20, 200.0)
         },
         joint_vel={".*": 0.0},
     ),

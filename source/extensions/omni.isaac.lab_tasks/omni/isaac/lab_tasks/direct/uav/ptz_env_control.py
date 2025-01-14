@@ -164,8 +164,11 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
     moment_scale = 0.05
 
     # reward scales
-    lin_vel_reward_scale = 10.0
-    ang_vel_reward_scale = 1.0
+    lin_vel_reward_scale = 1.0
+    ang_vel_reward_scale = -0.05
+    joint_torque_reward_scale = -2.5e-5
+    joint_accel_reward_scale = -2.5e-7
+    action_rate_reward_scale = -0.01
     error_to_goal_reward_scale = 15.0
     contact_forces_scale = 0.1
     ptz_control_scale = 1.0
@@ -182,7 +185,7 @@ class PTZControlEnv(DirectRLEnv):
 
         # Total thrust and moment applied to the base of the uav
         self._actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
-        self._last_actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
+        self._previous_actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
         self._thrust = torch.zeros(self.num_envs, 1, 3, device=self.device)
         self._moment = torch.zeros(self.num_envs, 1, 3, device=self.device)
         # Goal cmd
@@ -195,12 +198,12 @@ class PTZControlEnv(DirectRLEnv):
         self._episode_sums = {
             key: torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
             for key in [
-                # "lin_vel",
-                # "ang_vel",
-                # "error_to_goal",
-                "ptz_control_error",
                 "contact_forces",
-                "yolo_rewards"
+                "yolo_rewards",
+                "ang_vel_xyz_l2",
+                "dof_torques_l2",
+                "dof_acc_l2",
+                "action_rate_l2"
             ]
         }
         # Get specific body indices
@@ -217,8 +220,9 @@ class PTZControlEnv(DirectRLEnv):
         self.ptz_joint_z_scale = 0.9 * 150.0
 
         # character
-        self._character_body_id = self._character.find_bodies("Body_Mesh")[0]
-
+        # self._character_body_id = self._character.find_bodies("Body_Mesh")[0]
+        self._character_body_id = self._character.find_bodies("person")[0]
+        
         # Load yolo model
         self.yolo_model = YOLO("./source/third_part/YOLO/yolo11n.pt")
 
@@ -324,6 +328,7 @@ class PTZControlEnv(DirectRLEnv):
         return new_results
 
     def _get_observations(self) -> dict:
+        self._previous_actions = self._actions.clone()
         data_type = "rgb" if "rgb" in self.cfg.tiled_camera.data_types else "depth"
         image_data = self._tiled_camera.data.output[data_type].clone()
         # print("image_data:", image_data.shape, image_data.dtype)
@@ -336,8 +341,7 @@ class PTZControlEnv(DirectRLEnv):
         yolo_obs = self.yolo_results_filter(results, max_person = self.cfg.max_person_num)
         
         yolo_obs_view = yolo_obs.view(self.num_envs, -1)
-        obs = torch.cat((yolo_obs_view, self._last_actions.clone()), dim = -1)
-        self._last_actions = self._actions.clone()
+        obs = torch.cat((yolo_obs_view, self._actions), dim = -1)
         observations = {"policy": obs}
         return observations
 
@@ -365,17 +369,31 @@ class PTZControlEnv(DirectRLEnv):
         max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
         # self._is_collision_occurred = max_net_contact_forces > 0.05
         # print("max_net_contact_forces:", max_net_contact_forces)
-        ptz_control_error = 0.1 - torch.sum(torch.square(self._last_ptz_action[:,0,:] - self._ptz_action[:,0,:]), dim=1)
-        ptz_control_error = torch.clamp(ptz_control_error, max=0.0)
-        self._last_ptz_action = self._ptz_action.clone()
+
+        # ptz_control_error = 0.1 - torch.sum(torch.square(self._last_ptz_action[:,0,:] - self._ptz_action[:,0,:]), dim=1)
+        # ptz_control_error = torch.clamp(ptz_control_error, max=0.0)
+        # self._last_ptz_action = self._ptz_action.clone()
+
+        # angular velocity x/y/z
+        ang_vel_error = torch.sum(torch.square(self._robot.data.root_com_ang_vel_b[:, :3]), dim=1)
+        # joint torques
+        joint_torques = torch.sum(torch.square(self._robot.data.applied_torque), dim=1)
+        # joint acceleration
+        joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
+        # action rate
+        action_rate = torch.sum(torch.square(self._actions - self._previous_actions), dim=1)
 
         rewards = {
             # "lin_vel": lin_vel_error_to_goal_mapped * self.cfg.lin_vel_reward_scale * self.step_dt,
             # "ang_vel": ang_vel_error_to_goal_mapped * self.cfg.ang_vel_reward_scale * self.step_dt,
             # "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
-            "ptz_control_error": ptz_control_error * self.cfg.ptz_control_scale * self.step_dt, 
+            # "ptz_control_error": ptz_control_error * self.cfg.ptz_control_scale * self.step_dt, 
             "contact_forces": max_net_contact_forces * self.cfg.contact_forces_scale * self.step_dt,
-            "yolo_rewards": self._yolo_rewards * self.cfg.yolo_reward_scale * self.step_dt
+            "yolo_rewards": self._yolo_rewards * self.cfg.yolo_reward_scale * self.step_dt,
+            "ang_vel_xyz_l2": ang_vel_error * self.cfg.ang_vel_reward_scale * self.step_dt,
+            "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
+            "dof_acc_l2": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
+            "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,
         }
 
         reward = torch.sum(torch.stack(list(rewards.values())), dim=0)
@@ -421,6 +439,9 @@ class PTZControlEnv(DirectRLEnv):
             self.episode_length_buf = torch.randint_like(self.episode_length_buf, high=int(self.max_episode_length))
 
         self._actions[env_ids] = 0.0
+        self._previous_actions[env_ids] = 0.0
+        self._yolo_rewards[env_ids] = 0
+
         # Sample new commands        
         
         # Reset robot state

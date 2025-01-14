@@ -106,8 +106,10 @@ python source/standalone/workflows/sb3/train.py --task=Isaac-Quadcopter-Direct-v
 ### UAV
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Direct-v0 --num_envs 8
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-PTZ-Direct-v0 --num_envs 8
-python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Control-Direct-v0 --num_envs 8
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Control-Direct-v0 --num_envs 8192 --headless
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-UAV-Control-Direct-v0 --num_envs 8192 --headless --resume True --load_run 2024-12-12_13-27-40 --checkpoint model_5000.pt
+
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-UAV-Control-Direct-v0 --num_envs 8 --load_run policy --checkpoint model_9000.pt
 
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 2 --headless --enable_cameras --checkpoint model_9000.pt
 
@@ -136,6 +138,11 @@ python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duc
 #### Managed
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-Duck-v0 --num_envs 4096 --headless
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duck-Play-v0
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duck-Play-v0 --headless --livestream 1
+
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-BDX-v0 --num_envs 4096 --headless
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-BDX-Play-v0
+python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-BDX-Play-v0 --headless --livestream 1
 
 ### teddy_bear
 python source/standalone/environments/state_machine/lift_teddy_bear.py --num_envs 4
@@ -205,6 +212,20 @@ data = json.load(open(os.path.join(d, file)))
 with open(os.path.join(d, file), encoding='utf-8') as f:
     data = json.load(f)
 
+* 如遇到：
+File "/root/anaconda3/envs/sx_isaaclab/lib/python3.10/site-packages/rsl_rl/utils/utils.py", line 83, in store_code_state
+    f.write(content)
+UnicodeEncodeError: 'ascii' codec can't encode characters in position 4947-4949: ordinal not in range(128)
+
+将这个代码
+with open(diff_file_name, "x") as f:
+    content = f"--- git status ---\n{repo.git.status()} \n\n\n--- git diff ---\n{repo.git.diff(t)}"
+    f.write(content)
+修改为：
+with open(diff_file_name, "x", encoding='utf-8') as f:
+    content = f"--- git status ---\n{repo.git.status()} \n\n\n--- git diff ---\n{repo.git.diff(t)}"
+    f.write(content)
+
 ### 编队单点导航
 python source/standalone/workflows/sb3/train.py --task=Isaac-Quadcopter-Form-v0 --headless
 python source/standalone/workflows/sb3/train_form_td3.py --task=Isaac-Quadcopter-Form-v0 --headless
@@ -262,3 +283,33 @@ git clone https://hf-mirror.com/datasets/unitreerobotics/LAFAN1_Retargeting_Data
 # 将目录替换成你自己的下载的即可
 .\isaac-sim.bat --/persistent/isaac/asset_root/default="D:\omniverse\Downloads\Assets\Isaac\4.2"
 ./isaac-sim.sh --/persistent/isaac/asset_root/default="/home/ai/omniverse/Downloads/Isaac/4.2"
+
+./isaac-sim.sh --/persistent/isaac/asset_root/default="/home/dell/omniverse/Downloads/Assets/Isaac/4.2"
+
+### isaac lab 安装相关
+
+软链接到 _isaac_sim
+
+ln -s /home/dell/.local/share/ov/pkg/isaac-sim-4.2.0 _isaac_sim
+
+conda 换源
+
+channels:
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+
+channels:
+  - defaults
+show_channel_urls: true
+default_channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+custom_channels:
+  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  msys2: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  bioconda: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  menpo: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  pytorch-lts: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  simpleitk: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
