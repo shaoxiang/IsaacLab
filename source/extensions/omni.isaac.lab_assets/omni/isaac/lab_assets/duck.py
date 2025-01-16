@@ -41,9 +41,13 @@ DUCK_CFG = ArticulationCfg(
         pos=(0.0, 0.0, 0.45),
         joint_pos={
             ".*_hip_yaw_joint": 0.0,
-            ".*_hip_roll_joint": 0.0,
-            ".*_hip_pitch_joint": 0.0,
-            ".*_knee_pitch_joint": 0.0,
+            ".*_hip_roll_joint": 0.0,      
+            # ".*_hip_pitch_joint": 0.0,      # right_hip_pitch_joint -40.0;  left_hip_pitch_joint: 40.0
+            # ".*_knee_pitch_joint": 0.0,     # right_knee_pitch_joint 40.0;  left_knee_pitch_joint: -40.0
+            "right_hip_pitch_joint": -0.6981,
+            "left_hip_pitch_joint": 0.6981,
+            "right_knee_pitch_joint": 0.6981,
+            "left_knee_pitch_joint": -0.6981,
             ".*_ankle_pitch_joint": 0.0,
             "throat_pitch_1_joint": 0.0,
             "throat_pitch_2_pitch": 0.0,
@@ -55,8 +59,8 @@ DUCK_CFG = ArticulationCfg(
     actuators={
         "legs": ImplicitActuatorCfg(
             joint_names_expr=[".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_hip_pitch_joint", ".*_knee_pitch_joint", ".*_ankle_pitch_joint"],
-            effort_limit=100,
-            velocity_limit=100.0,
+            effort_limit=50.0,
+            velocity_limit=50.0,
             stiffness={
                 ".*_hip_yaw_joint": 100.0,
                 ".*_hip_roll_joint": 100.0,
@@ -74,7 +78,7 @@ DUCK_CFG = ArticulationCfg(
         ),
         "throat": ImplicitActuatorCfg(
             joint_names_expr=["throat_pitch_1_joint", "throat_pitch_2_pitch", "throat_yaw_joint"],
-            effort_limit=100,
+            effort_limit=20.0,
             velocity_limit=20.0,
             stiffness={
                 "throat_pitch_1_joint": 40.0,

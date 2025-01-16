@@ -27,7 +27,7 @@ from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
 from omni.isaac.lab_assets import UAV_CFG  # isort: skip
 from omni.isaac.lab.markers import CUBOID_MARKER_CFG  # isort: skip
 
-from ultralytics import YOLO
+# from ultralytics import YOLO
 import omni
 import torch
 import io
@@ -126,16 +126,16 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
     # (0.70711, 0.0, 0.70711, 0.0)
 
     # camera
-    tiled_camera: TiledCameraCfg = TiledCameraCfg(
-        prim_path="/World/envs/env_.*/Robot/body/Camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(-0.024216989562340085, -0.07150677787090418, 0.00604856209541946), rot=(0.70711, 0.0, 0.70711, 0.0), convention="ros"),
-        data_types=["rgb", "depth"],
-        spawn=sim_utils.PinholeCameraCfg(
-            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 50.0)
-        ),
-        width=480,
-        height=320,
-    )
+    # tiled_camera: TiledCameraCfg = TiledCameraCfg(
+    #     prim_path="/World/envs/env_.*/Robot/body/Camera",
+    #     offset=TiledCameraCfg.OffsetCfg(pos=(-0.024216989562340085, -0.07150677787090418, 0.00604856209541946), rot=(0.70711, 0.0, 0.70711, 0.0), convention="ros"),
+    #     data_types=["rgb", "depth"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 50.0)
+    #     ),
+    #     width=480,
+    #     height=320,
+    # )
 
     # contact sensor
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
@@ -160,8 +160,12 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
 
     # robot
     robot: ArticulationCfg = UAV_CFG.replace(prim_path="/World/envs/env_.*/Robot")
-    thrust_to_weight = 10.0
+    thrust_to_weight = 5.0
     moment_scale = 0.05
+
+    # reward scales
+    lin_vel_reward_scale = 1.0
+    error_to_goal_reward_scale = 1.5
 
     # reward scales
     lin_vel_reward_scale = 1.0
@@ -169,13 +173,12 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
     joint_torque_reward_scale = -2.5e-5
     joint_accel_reward_scale = -2.5e-7
     action_rate_reward_scale = -0.01
-    error_to_goal_reward_scale = 15.0
     contact_forces_scale = 0.1
     ptz_control_scale = 1.0
     yolo_reward_scale = 1.0
 
     num_channels = 3
-    num_observations_img = num_channels * tiled_camera.height * tiled_camera.width
+    # num_observations_img = num_channels * tiled_camera.height * tiled_camera.width
 
 class PTZControlEnv(DirectRLEnv):
     cfg: PTZControlEnvCfg
@@ -224,7 +227,7 @@ class PTZControlEnv(DirectRLEnv):
         self._character_body_id = self._character.find_bodies("person")[0]
         
         # Load yolo model
-        self.yolo_model = YOLO("./source/third_part/YOLO/yolo11n.pt")
+        # self.yolo_model = YOLO("./source/third_part/YOLO/yolo11n.pt")
 
         # Load low policy model    
         file_content = omni.client.read_file("./source/policy/UAV/policy.pt")[2]
@@ -251,8 +254,8 @@ class PTZControlEnv(DirectRLEnv):
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
         # add camera
-        self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
-        self.scene.sensors["tiled_camera"] = self._tiled_camera
+        # self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
+        # self.scene.sensors["tiled_camera"] = self._tiled_camera
         # add contact sensor
         self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
         self.scene.sensors["contact_sensor"] = self._contact_sensor
@@ -327,24 +330,45 @@ class PTZControlEnv(DirectRLEnv):
         # print(new_results)
         return new_results
 
-    def _get_observations(self) -> dict:
-        self._previous_actions = self._actions.clone()
-        data_type = "rgb" if "rgb" in self.cfg.tiled_camera.data_types else "depth"
-        image_data = self._tiled_camera.data.output[data_type].clone()
-        # print("image_data:", image_data.shape, image_data.dtype)
-        image_data_permute = image_data.permute(0, 3, 1, 2) / 255.0
-        # print("image_data_permute:", image_data_permute.shape, image_data_permute.dtype)
-        results = self.yolo_model(image_data_permute, verbose = False)
-        # print("results:", results)
-        # print("results boxes:", results[0].boxes, results[0].boxes.cls)
-        # print("results boxes len:", len(results[0].boxes), len(results[0].boxes.cls))
-        yolo_obs = self.yolo_results_filter(results, max_person = self.cfg.max_person_num)
+    # def _get_observations(self) -> dict:
+    #     self._previous_actions = self._actions.clone()
+    #     data_type = "rgb" if "rgb" in self.cfg.tiled_camera.data_types else "depth"
+    #     image_data = self._tiled_camera.data.output[data_type].clone()
+    #     # print("image_data:", image_data.shape, image_data.dtype)
+    #     image_data_permute = image_data.permute(0, 3, 1, 2) / 255.0
+    #     # print("image_data_permute:", image_data_permute.shape, image_data_permute.dtype)
+    #     results = self.yolo_model(image_data_permute, stream=True, verbose = False)
+    #     # print("results:", results)
+    #     # print("results boxes:", results[0].boxes, results[0].boxes.cls)
+    #     # print("results boxes len:", len(results[0].boxes), len(results[0].boxes.cls))
+    #     yolo_obs = self.yolo_results_filter(results, max_person = self.cfg.max_person_num)
         
-        yolo_obs_view = yolo_obs.view(self.num_envs, -1)
-        obs = torch.cat((yolo_obs_view, self._actions), dim = -1)
+    #     yolo_obs_view = yolo_obs.view(self.num_envs, -1)
+    #     obs = torch.cat((yolo_obs_view, self._actions), dim = -1)
+    #     observations = {"policy": obs}
+    #     return observations
+    
+    def _get_observations(self) -> dict:
+
+        # desired_pos_b, _ = subtract_frame_transforms(
+        #     self._robot.data.root_state_w[:, :3], self._robot.data.root_state_w[:, 3:7], self._desired_pos_w
+        # )
+
+        desired_pos_b = self._robot.data.root_pos_w - self._character.data.root_pos_w
+
+        obs = torch.cat(
+            [
+                self._robot.data.root_lin_vel_b,
+                self._robot.data.root_ang_vel_b,
+                self._robot.data.projected_gravity_b,
+                desired_pos_b,
+            ],
+            dim=-1,
+        )
+
         observations = {"policy": obs}
         return observations
-
+    
     def _get_rewards(self) -> torch.Tensor:
         # lin_vel = torch.sum(torch.square(self._robot.data.root_lin_vel_b), dim=1)
         # ang_vel = torch.sum(torch.square(self._robot.data.root_ang_vel_b), dim=1)
@@ -365,7 +389,7 @@ class PTZControlEnv(DirectRLEnv):
 
         # print("lin_vel_error_to_goal:", lin_vel_error_to_goal, lin_vel_error_to_goal_mapped, "ang_vel_error_to_goal:", ang_vel_error_to_goal, ang_vel_error_to_goal_mapped)
         
-        net_contact_forces = self._contact_sensor.data.net_forces_w_history
+        net_contact_forces = self._contact_sensor.data.force_matrix_w
         max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
         # self._is_collision_occurred = max_net_contact_forces > 0.05
         # print("max_net_contact_forces:", max_net_contact_forces)
@@ -389,7 +413,7 @@ class PTZControlEnv(DirectRLEnv):
             # "error_to_goal": error_to_goal_mapped * self.cfg.error_to_goal_reward_scale * self.step_dt,
             # "ptz_control_error": ptz_control_error * self.cfg.ptz_control_scale * self.step_dt, 
             "contact_forces": max_net_contact_forces * self.cfg.contact_forces_scale * self.step_dt,
-            "yolo_rewards": self._yolo_rewards * self.cfg.yolo_reward_scale * self.step_dt,
+            # "yolo_rewards": self._yolo_rewards * self.cfg.yolo_reward_scale * self.step_dt,
             "ang_vel_xyz_l2": ang_vel_error * self.cfg.ang_vel_reward_scale * self.step_dt,
             "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
             "dof_acc_l2": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,

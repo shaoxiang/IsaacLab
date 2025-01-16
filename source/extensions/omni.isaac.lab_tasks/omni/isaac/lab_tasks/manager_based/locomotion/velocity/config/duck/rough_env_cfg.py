@@ -36,16 +36,18 @@ class DuckRewards(RewardsCfg):
     )
 
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, 
+        weight=1.0, 
+        params={"command_name": "base_velocity", "std": 0.5}
     )
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.25,
+        weight=1.0,  # 0.25
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_pitch"),
-            "threshold": 0.4,
+            "threshold": 1.4, # 0.4
         },
     )
 
@@ -62,15 +64,15 @@ class DuckRewards(RewardsCfg):
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_hip_pitch_joint"])},
     )
 
     # Penalize deviation from default of the joints that are not essential for locomotion
-    # joint_deviation_hip = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.2,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw", ".*_hip_roll"])},
-    # )
+    joint_deviation_hip = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_hip_pitch_joint"])},
+    )
 
     joint_deviation_throat = RewTerm(
         func=mdp.joint_deviation_l1,
@@ -111,7 +113,7 @@ class DuckEventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
-            "force_range": (0.0, 0.5),
+            "force_range": (-0.5, 0.5),
             "torque_range": (-0.5, 0.5),
         },
     )
@@ -137,7 +139,7 @@ class DuckEventCfg:
         func=duck_mdp.reset_joints_around_default,
         mode="reset",
         params={
-            "position_range": (-0.2, 0.2),
+            "position_range": (-1.0, 1.0),
             "velocity_range": (-2.5, 2.5),
             "asset_cfg": SceneEntityCfg("robot"),
         },
@@ -168,7 +170,7 @@ class DuckRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/base"
 
         # Terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = ["base"]
+        self.terminations.base_contact.params["sensor_cfg"].body_names = ["base", "throat_yaw"]
 
         # Rewards
         self.rewards.undesired_contacts = None
@@ -179,11 +181,8 @@ class DuckRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (-0.8, 0.8)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.8, 0.8)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.8, 0.8)
-
-        # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "base"
 
 @configclass
 class DuckRoughEnvCfg_PLAY(DuckRoughEnvCfg):
@@ -233,11 +232,11 @@ class BDXRewards(RewardsCfg):
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.25,
+        weight=0.5,
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot_pad"),
-            "threshold": 0.4,
+            "threshold": 1.0, # 0.4
         },
     )
 
@@ -258,11 +257,11 @@ class BDXRewards(RewardsCfg):
     )
 
     # Penalize deviation from default of the joints that are not essential for locomotion
-    # joint_deviation_hip = RewTerm(
-    #     func=mdp.joint_deviation_l1,
-    #     weight=-0.2,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw", ".*_hip_roll"])},
-    # )
+    joint_deviation_hip = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw", ".*_hip_roll", ".*_hip_pitch"])},
+    )
 
     joint_deviation_throat = RewTerm(
         func=mdp.joint_deviation_l1,
@@ -303,7 +302,7 @@ class BDXEventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="body"),
-            "force_range": (0.0, 0.5),
+            "force_range": (-0.5, 0.5),
             "torque_range": (-0.5, 0.5),
         },
     )
@@ -329,7 +328,7 @@ class BDXEventCfg:
         func=duck_mdp.reset_joints_around_default,
         mode="reset",
         params={
-            "position_range": (-0.2, 0.2),
+            "position_range": (-1.0, 1.0),
             "velocity_range": (-2.5, 2.5),
             "asset_cfg": SceneEntityCfg("robot"),
         },

@@ -57,9 +57,13 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
     air_time = contact_sensor.data.current_air_time[:, sensor_cfg.body_ids]
     contact_time = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids]
     in_contact = contact_time > 0.0
+    # 对于每个传感器（或脚），如果它与地面接触（in_contact为True），则in_mode_time在该位置上的值取自contact_time；如果它没有与地面接触（in_contact为False），则in_mode_time在该位置上的值取自air_time
     in_mode_time = torch.where(in_contact, contact_time, air_time)
+    # single_stance 是一个布尔张量，其中每个元素表示对应的时间点上机器人是否处于单脚站立的状态，如果某个元素为 True，则表示在那个时间点上机器人是单脚站立的；如果为 False，则表示不是单脚站立（可能是双脚都站立，或者两只脚都不与地面接触）
     single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    # reward 是一个一维张量，包含了每个时间点上（如果处于单脚站立状态）最小的 in_mode_time 值，或者如果该时间点不是单脚站立，则为 0.0
     reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    # 如果 threshold 设置得很高，机器人可能会更有动力去尝试延长空中时间（即采取更长的步伐），因为它可以获得更高的奖励。相反，如果 threshold 设置得很低，机器人可能不会那么努力地延长空中时间，因为它从额外的努力中获得的奖励增加很少或没有增加。
     reward = torch.clamp(reward, max=threshold)
     # no reward for zero command
     reward *= torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1) > 0.1

@@ -121,6 +121,9 @@ python source/standalone/workflows/rsl_rl/play.py --task=Isaac-UAV-Fly-v0 --num_
 
 ### PTZ-UAV
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --video
+
+python -m torch.distributed.run --nnodes=1 --nproc_per_node=3 source/standalone/workflows/skrl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 2048 --enable_cameras --headless --distributed
+
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 256 --enable_cameras --headless --resume True
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 8 --enable_cameras
 
@@ -275,6 +278,9 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple onnxruntime-gpu --no-dep
 
 ## Tips
 1、添加可变形物体，核心要注意 replicate_physics 为 False
+2、contact sensor 使用注意，
+如果使用 filter_prim_paths_expr 只保留与某些特定的物体之间碰撞，那么读取碰撞数值时应该使用force_matrix_w。 
+net_forces_w 报告总的净法向力，过滤后的力位于单独的属性 force_matrix_w 
 
 
 ## 人形机器人动捕数据播放

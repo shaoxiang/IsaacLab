@@ -269,7 +269,7 @@ class QuadcopterCameraEnv(DirectRLEnv):
                 self._robot.data.root_lin_vel_b,
                 self._robot.data.root_ang_vel_b,
                 self._robot.data.projected_gravity_b,
-                desired_pos_b,
+                ,
                 angle_error,
             ],
             dim=-1,
