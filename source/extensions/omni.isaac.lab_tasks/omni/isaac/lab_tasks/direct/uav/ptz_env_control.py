@@ -405,7 +405,7 @@ class PTZControlEnv(DirectRLEnv):
         # self._last_ptz_action = self._ptz_action.clone()
 
         # angular velocity x/y/z
-        # ang_vel_error = torch.sum(torch.square(self._robot.data.root_com_ang_vel_b[:, :3]), dim=1)
+        # ang_vel_error = torch.sum(torch.square(self._robot.data.root_ang_vel_b[:, :3]), dim=1)
         # joint torques
         joint_torques = torch.sum(torch.square(self._robot.data.applied_torque), dim=1)
         # joint acceleration

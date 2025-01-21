@@ -88,7 +88,7 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
 
 def head_keep_level(env, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset = env.scene[asset_cfg.name]
-    asset_roll, asset_pitch, asset_yaw = euler_xyz_from_quat(asset.data.root_link_quat_w)
+    asset_roll, asset_pitch, asset_yaw = euler_xyz_from_quat(asset.data.root_quat_w)
     reward = torch.cos(asset_pitch)
     return reward
 
