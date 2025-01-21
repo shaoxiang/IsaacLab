@@ -217,8 +217,7 @@ class KayaTennisEnv(DirectRLEnv):
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
-
-        net_contact_forces = self._contact_sensor.data.net_forces_w_history
+        net_contact_forces = self._contact_sensor.data.force_matrix_w
         max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
         self._is_reach_goal = max_net_contact_forces > 0.1
         # self._is_collision_occurred = max_net_contact_forces > 0.05
@@ -238,7 +237,7 @@ class KayaTennisEnv(DirectRLEnv):
         joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
 
         distance_to_goal = torch.linalg.norm(self._tennis_ball_rigid.data.root_pos_w - self._robot.data.root_pos_w, dim=1)
-        distance_to_goal_mapped = 1 - torch.tanh(0.6 * distance_to_goal)
+        distance_to_goal_mapped = 1 - torch.tanh(0.5 * distance_to_goal)
         # distance_to_goal_mapped = distance_to_goal < 0.5
 
         reset_ball = self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.08

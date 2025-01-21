@@ -128,8 +128,8 @@ python source/standalone/workflows/rsl_rl/train.py --task=Isaac-PTZ-Control-Dire
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direct-v0 --num_envs 8 --enable_cameras
 
 ### Kaya
-python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Direct-v0 --num_envs 256 --headless
-python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Tennis-v0 --num_envs 64
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Direct-v0 --num_envs 4096 --headless
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Tennis-v0 --num_envs 4096 --headless
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Kaya-Tennis-Play-v0 --num_envs 2
 
 ### Duck
@@ -146,6 +146,7 @@ python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duc
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Velocity-Flat-BDX-v0 --num_envs 4096 --headless
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-BDX-Play-v0
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Velocity-Flat-BDX-Play-v0 --headless --livestream 1
+python -m tensorboard.main --logdir logs/rsl_rl/bdx_flat/2025-01-17_20-30-01
 
 ### teddy_bear
 python source/standalone/environments/state_machine/lift_teddy_bear.py --num_envs 4

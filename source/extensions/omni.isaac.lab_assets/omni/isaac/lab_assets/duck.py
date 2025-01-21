@@ -112,17 +112,21 @@ DUCK_BDX_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.45),
+        pos=(0.0, 0.0, 0.5),
         joint_pos={
             ".*_ankle": 0.0,            # (-40.0, 40.0)
-            ".*_knee": 0.0,             # (-80.0, 80.0)
-            ".*_hip_pitch": 0.0,        # (-60.0, 60.0)
+            # ".*_knee": 0.0,           # (-80.0, 80.0)
+            # ".*_hip_pitch": 0.0,      # (-60.0, 60.0)
             ".*_hip_roll": 0.0,         # (-30.0, 30.0)
             ".*_hip_yaw": 0.0,          # (-30.0, 30.0)
+            "right_hip_pitch": -0.5235, # right_hip_pitch -30.0 
+            "left_hip_pitch": 0.5235,   # left_hip_pitch 30.0
+            "right_knee": -0.5235,      # right_knee -30.0
+            "left_knee": 0.5235,        #  left_knee 30.0
             "head_roll": 0.0,           # (-50.0, 50.0)
             "head_yaw": 0.0,
-            "head_pitch": 1.0472,       # (0, 150.0)
-            "neck_pitch": -0.8727,      # (-180.0, -20.0)
+            "head_pitch": 1.0472,       # head_pitch 60 (0, 140.0)
+            "neck_pitch": -0.8727,      # neck_pitch -50.0 (-90.0, -20.0)
             "left_antenna": -1.5708,    # (-200.0 -20.0)
             "right_antenna": 1.5708,    # (20, 200.0)
         },

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.sensors import ContactSensor
-from omni.isaac.lab.utils.math import quat_rotate_inverse, yaw_quat
+from omni.isaac.lab.utils.math import quat_rotate_inverse, yaw_quat, euler_xyz_from_quat
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
@@ -86,6 +86,11 @@ def feet_slide(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = Scen
     reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 
+def head_keep_level(env, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    asset = env.scene[asset_cfg.name]
+    asset_roll, asset_pitch, asset_yaw = euler_xyz_from_quat(asset.data.root_link_quat_w)
+    reward = torch.cos(asset_pitch)
+    return reward
 
 def track_lin_vel_xy_yaw_frame_exp(
     env, std: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -98,7 +103,6 @@ def track_lin_vel_xy_yaw_frame_exp(
         torch.square(env.command_manager.get_command(command_name)[:, :2] - vel_yaw[:, :2]), dim=1
     )
     return torch.exp(-lin_vel_error / std**2)
-
 
 def track_ang_vel_z_world_exp(
     env, command_name: str, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")

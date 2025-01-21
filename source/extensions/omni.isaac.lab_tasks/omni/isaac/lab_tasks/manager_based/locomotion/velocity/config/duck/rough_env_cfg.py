@@ -222,17 +222,19 @@ class BDXRewards(RewardsCfg):
     
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=1.0,
+        weight=2.0,
         params={"command_name": "base_velocity", "std": 0.5},
     )
 
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, 
+        weight=1.0, 
+        params={"command_name": "base_velocity", "std": 0.5}
     )
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
-        weight=0.5,
+        weight=1.0,
         params={
             "command_name": "base_velocity",
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot_pad"),
@@ -266,9 +268,21 @@ class BDXRewards(RewardsCfg):
     joint_deviation_throat = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.2,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["head_pitch", "head_roll", "head_yaw"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["head_pitch", "neck_pitch"])},
     )
 
+    joint_deviation_head = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["head_yaw", "head_roll"])},
+    )
+
+    head_keep_level = RewTerm(
+        func=mdp.head_keep_level,
+        weight= 0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names="head")},
+    )
+    
 @configclass
 class BDXEventCfg:
     """Configuration for randomization."""
@@ -312,7 +326,7 @@ class BDXEventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
+            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.3, 0.3), "yaw": (-3.14, 3.14)},
             "velocity_range": {
                 "x": (-1.5, 1.5),
                 "y": (-1.0, 1.0),
@@ -328,7 +342,7 @@ class BDXEventCfg:
         func=duck_mdp.reset_joints_around_default,
         mode="reset",
         params={
-            "position_range": (-1.0, 1.0),
+            "position_range": (-0.4, 0.4),
             "velocity_range": (-2.5, 2.5),
             "asset_cfg": SceneEntityCfg("robot"),
         },
@@ -359,12 +373,12 @@ class BDXRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/body"
 
         # Terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = ["body"]
+        self.terminations.base_contact.params["sensor_cfg"].body_names = ["body", "head"]
 
         # Rewards
         self.rewards.undesired_contacts = None
         self.rewards.flat_orientation_l2.weight = -1.0
-        self.rewards.dof_torques_l2.weight = 0.0
+        # self.rewards.dof_torques_l2.weight = -0.001
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.25e-7
 
@@ -372,9 +386,6 @@ class BDXRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.lin_vel_x = (-0.8, 0.8)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.8, 0.8)
-
-        # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "body"
 
 @configclass
 class BDXRoughEnvCfg_PLAY(BDXRoughEnvCfg):
