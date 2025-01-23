@@ -26,10 +26,10 @@ from omni.isaac.lab.sensors import TiledCamera, TiledCameraCfg, ContactSensor, C
 from omni.isaac.lab_assets import KAYA_CFG  # isort: skip
 from omni.isaac.lab.markers import CUBOID_MARKER_CFG  # isort: skip
 
-class KayaEnvWindow(BaseEnvWindow):
+class KayaVAEnvWindow(BaseEnvWindow):
     """Window manager for the Kaya environment."""
 
-    def __init__(self, env: KayaEnv, window_name: str = "IsaacLab"):
+    def __init__(self, env: KayaVAEnv, window_name: str = "IsaacLab"):
         """Initialize the window.
 
         Args:
@@ -47,16 +47,16 @@ class KayaEnvWindow(BaseEnvWindow):
 
 
 @configclass
-class KayaEnvCfg(DirectRLEnvCfg):
+class KayaVAEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 2.0
+    episode_length_s = 4.0
     decimation = 2
     action_space = 3
-    observation_space = 12
+
     state_space = 0
     debug_vis = True
 
-    ui_window_class_type = KayaEnvWindow
+    ui_window_class_type = KayaVAEnvWindow
 
     # simulation
     sim: SimulationCfg = SimulationCfg(
@@ -92,11 +92,35 @@ class KayaEnvCfg(DirectRLEnvCfg):
     # robot
     robot: ArticulationCfg = KAYA_CFG.replace(prim_path="/World/envs/env_.*/Robot")
 
+    # camera
+    # -88.0、180.0、90.0 / 
+    # 0.07151、0.0、0.07166
+    tiled_camera: TiledCameraCfg = TiledCameraCfg(
+        prim_path="/World/envs/env_.*/Robot/base_link/Camera",
+        offset=TiledCameraCfg.OffsetCfg(pos=(0.07, 0.0, 0.07), rot=(0.5,0.5,-0.5,-0.5), convention="opengl"),
+        data_types=["rgb", "depth"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
+        ),
+        width=320,
+        height=240,
+    )
+
+    # observation_space = gym.spaces.Dict({
+    #     "robot-state": gym.spaces.Box(float("-inf"), float("inf"), shape=(12,)), 
+    #     "camera": gym.spaces.Box(float("-inf"), float("inf"), shape=(tiled_camera.width, tiled_camera.height, 1)),
+    # })
+
+    observation_space = {
+        "robot-state": 12,
+        "camera": [tiled_camera.width, tiled_camera.height, 1],
+    }
+
     contact_sensor_base_link: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/base_link", update_period=0.01, history_length=3, debug_vis=False
     )
 
-    action_scale = 50.0
+    action_scale = 20.0
 
     # reward scales
     lin_vel_reward_scale = -0.05
@@ -104,10 +128,16 @@ class KayaEnvCfg(DirectRLEnvCfg):
     distance_to_goal_reward_scale = 15.0
     collision_reward_scale = -1.0
 
-class KayaEnv(DirectRLEnv):
-    cfg: KayaEnvCfg
+@configclass
+class KayaVAEnvPlayCfg(KayaVAEnvCfg):
+    # scene
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=64, env_spacing=2.0, replicate_physics=True)
+    # inference for CNN
 
-    def __init__(self, cfg: KayaEnvCfg, render_mode: str | None = None, **kwargs):
+class KayaVAEnv(DirectRLEnv):
+    cfg: KayaVAEnvCfg
+
+    def __init__(self, cfg: KayaVAEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
 
         # Total thrust and moment applied to the base of the uav
@@ -141,12 +171,15 @@ class KayaEnv(DirectRLEnv):
         self.scene.articulations["robot"] = self._robot
         self._contact_sensor_base_link = ContactSensor(self.cfg.contact_sensor_base_link)
         self.scene.sensors["contact_sensor_base_link"] = self._contact_sensor_base_link
+        self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
+        self.scene.sensors["tiled_camera"] = self._tiled_camera
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
         self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
-        self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
+        # Let envs collision
+        # self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
@@ -171,7 +204,16 @@ class KayaEnv(DirectRLEnv):
             ],
             dim=-1,
         )
-        observations = {"policy": obs}
+        
+        camera_data = self._tiled_camera.data.output["depth"]
+        camera_data[camera_data == float("inf")] = 0
+        # print("camera_data:", camera_data.shape)
+        observations = {
+            "policy": {
+                "robot-state": obs,
+                "camera": camera_data.clone(),
+            }
+        }
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
@@ -182,7 +224,9 @@ class KayaEnv(DirectRLEnv):
 
         net_contact_forces = self._contact_sensor_base_link.data.net_forces_w_history
         max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
+        # print("max_net_contact_forces:", max_net_contact_forces)
         self._collision = max_net_contact_forces > 3.0
+
         rewards = {
             "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
             "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
@@ -198,7 +242,7 @@ class KayaEnv(DirectRLEnv):
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         died = self._collision
-        # print("max_net_contact_forces:", max_net_contact_forces)
+        # died = self._robot.data.root_pos_w[:, 2] > 10.0
         # died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.5, self._robot.data.root_pos_w[:, 2] > 15.0)
         return died, time_out
 

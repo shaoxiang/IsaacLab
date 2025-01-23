@@ -25,6 +25,11 @@ python source/standalone/tutorials/01_assets/run_tennis_ball.py
 python source/standalone/demos/multi_asset.py
 python source/standalone/demos/multi_asset_more.py
 
+## benchmark
+python source/standalone/benchmarks/benchmark_rlgames.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --headless --enable_cameras
+python source/standalone/benchmarks/benchmark_rlgames.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --headless --enable_cameras --num_envs 128
+
+
 ## Tests
 python source/extensions/omni.isaac.lab/test/assets/check_ridgeback_franka.py
 
@@ -76,6 +81,7 @@ python source/standalone/workflows/rl_games/train.py --task=Isaac-Franka-Cabinet
 
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-Direct-v0
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --headless --enable_cameras --video --num_envs 512
+python source/standalone/workflows/skrl/train.py --task=Isaac-Cartpole-Depth-Camera-Direct-v0 --headless --enable_cameras --num_envs 32
 
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-ResNet18-v0 --headless --enable_cameras --video
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Cartpole-RGB-TheiaTiny-v0 --headless --enable_cameras --video
@@ -131,6 +137,11 @@ python source/standalone/workflows/rsl_rl/play.py --task=Isaac-PTZ-Control-Direc
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Direct-v0 --num_envs 4096 --headless
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Tennis-v0 --num_envs 4096 --headless
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Kaya-Tennis-Play-v0 --num_envs 2
+python source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 256 --enable_cameras --headless
+python source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 128 --enable_cameras --video --video_length 1000 --video_interval 50000 --headless
+
+python -m tensorboard.main --logdir logs/skrl/kaya_va_direct/2025-01-22_16-27-36_ppo_torch
+python -m tensorboard.main --logdir logs/rsl_rl/kaya_tennis/2025-01-22_22-03-52
 
 ### Duck
 #### Direct
@@ -262,6 +273,15 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple einops
 单独升级 rsl_rl
 pip install git+https://github.com/leggedrobotics/rsl_rl.git
 
+单独升级 skrl
+pip install git+https://github.com/Toni-SM/skrl.git
+./isaaclab.sh -p -m pip install git+https://github.com/Toni-SM/skrl.git@develop
+.\isaaclab.bat -p -m pip install git+https://github.com/Toni-SM/skrl.git@develop
+
+单独升级 stable_baselines3
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple stable-baselines3
+pip install git+https://github.com/DLR-RM/stable-baselines3
+
 ### asserts error
 #### 将目录替换成你自己的下载的即可
 .\isaac-sim.bat --/persistent/isaac/asset_root/default="D:\omniverse\Downloads\Assets\Isaac\4.2"
@@ -282,7 +302,8 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple onnxruntime-gpu --no-dep
 2、contact sensor 使用注意，
 如果使用 filter_prim_paths_expr 只保留与某些特定的物体之间碰撞，那么读取碰撞数值时应该使用force_matrix_w。 
 net_forces_w 报告总的净法向力，过滤后的力位于单独的属性 force_matrix_w 
-
+3、特权信息
+observations = {"policy": obs, "critic": states}
 
 ## 人形机器人动捕数据播放
 git clone https://hf-mirror.com/datasets/unitreerobotics/LAFAN1_Retargeting_Dataset

@@ -93,18 +93,18 @@ class TennisSceneCfg(InteractiveSceneCfg):
     )
 
     # contact sensor
-    # contact_sensor: ContactSensorCfg = ContactSensorCfg(
-    #     prim_path="/World/envs/env_.*/Robot/check_goal", update_period=0.01, history_length=3, debug_vis=False, filter_prim_paths_expr = ["/World/envs/env_.*/Tennis_ball"]
-    # )
-
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/check_goal", update_period=0.01, history_length=3, debug_vis=False, filter_prim_paths_expr = ["/World/envs/env_.*/Tennis_ball_rigid"]
+    )
+
+    contact_sensor_base_link: ContactSensorCfg = ContactSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/base_link", update_period=0.01, history_length=3, debug_vis=False
     )
 
 @configclass
 class KayaTennisEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 10.0
+    episode_length_s = 40.0
     decimation = 2
     action_space = 3
     observation_space = 18
@@ -127,15 +127,17 @@ class KayaTennisEnvCfg(DirectRLEnvCfg):
     # scene
     scene: TennisSceneCfg = TennisSceneCfg(num_envs=4096, env_spacing=8.0, replicate_physics=False)
     # robot
-    action_scale = 40.0
+    action_scale = 20.0
     # reward scales
     lin_vel_reward_scale = -0.05
-    ang_vel_reward_scale = -0.2
-    distance_to_goal_reward_scale = 3.0
+    ang_vel_reward_scale = -0.05
+    distance_to_goal_reward_scale = 5.0
     lose_goal_reward_scale = -1.0
-    reach_goal_reward_scale = 1.0
+    reach_goal_reward_scale = 60.0
     action_rate_reward_scale = -0.01
     joint_accel_reward_scale = -2.5e-7
+    rew_scale_alive = 0.2
+    rew_scale_terminated = -2.0
 
 class KayaTennisEnv(DirectRLEnv):
     cfg: KayaTennisEnvCfg
@@ -156,6 +158,8 @@ class KayaTennisEnv(DirectRLEnv):
         # self._tennis_ball = self.scene["tennis_ball"]
         self._tennis_ball_rigid = self.scene["tennis_ball_rigid"]
         self._contact_sensor = self.scene["contact_sensor"]
+        self._contact_sensor_base_link = self.scene["contact_sensor_base_link"]
+        
         self._terrain = self.scene.terrain
 
         # Logging
@@ -168,7 +172,9 @@ class KayaTennisEnv(DirectRLEnv):
                 "reach_goal",
                 "distance_to_goal",
                 "action_rate_l2",
-                "joint_accel"
+                "joint_accel",
+                "rew_alive",
+                "rew_termination"
             ]
         }
         wheels_dof_names = ["axle_0_joint", "axle_1_joint", "axle_2_joint"]
@@ -199,6 +205,7 @@ class KayaTennisEnv(DirectRLEnv):
         self._previous_actions = self._actions.clone()
         
         desired_pos_b = self._robot.data.root_pos_w - self._tennis_ball_rigid.data.root_pos_w
+        orin_pos_b = self._robot.data.root_pos_w - self._terrain.env_origins
 
         obs = torch.cat(
             [
@@ -206,6 +213,7 @@ class KayaTennisEnv(DirectRLEnv):
                 self._robot.data.root_ang_vel_b,
                 self._robot.data.projected_gravity_b,
                 desired_pos_b,
+                orin_pos_b,
                 self._tennis_ball_rigid.data.root_lin_vel_b,
                 # self._tennis_ball_rigid.data.projected_gravity_b,
                 self._actions,
@@ -237,10 +245,10 @@ class KayaTennisEnv(DirectRLEnv):
         joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
 
         distance_to_goal = torch.linalg.norm(self._tennis_ball_rigid.data.root_pos_w - self._robot.data.root_pos_w, dim=1)
-        distance_to_goal_mapped = 1 - torch.tanh(0.5 * distance_to_goal)
+        distance_to_goal_mapped = 1 - torch.tanh(3.0 * distance_to_goal)
         # distance_to_goal_mapped = distance_to_goal < 0.5
-
-        reset_ball = self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.08
+        
+        reset_ball = torch.logical_or(self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.08, self._is_reach_goal)
         reset_ball_ids = reset_ball.nonzero(as_tuple=False).squeeze(-1)
         # print("reset_ball_ids:", reset_ball_ids)
         if len(reset_ball_ids) > 0:
@@ -252,9 +260,11 @@ class KayaTennisEnv(DirectRLEnv):
             "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
             # "lose_goal": reset_ball * self.cfg.lose_goal_reward_scale,
             "reach_goal": self._is_reach_goal * self.cfg.reach_goal_reward_scale,
-            "distance_to_goal": distance_to_goal_mapped * self.cfg.distance_to_goal_reward_scale * self.step_dt,
+            "distance_to_goal": distance_to_goal_mapped * self.cfg.distance_to_goal_reward_scale,
             "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,
-            "joint_accel": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
+            # "joint_accel": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
+            "rew_alive": self.cfg.rew_scale_alive * (1.0 - self.reset_terminated.float()) * self.step_dt,
+            "rew_termination": self.cfg.rew_scale_terminated * self.reset_terminated.float(),
         }
         reward = torch.sum(torch.stack(list(rewards.values())), dim=0)
         # Logging
@@ -266,9 +276,14 @@ class KayaTennisEnv(DirectRLEnv):
         time_out = self.episode_length_buf >= self.max_episode_length - 1
         distance_to_orin = torch.linalg.norm(self._terrain.env_origins - self._robot.data.root_pos_w, dim=1)
         # far_away_orin = distance_to_orin > 4.0
+
+        # net_contact_forces = self._contact_sensor_base_link.data.net_forces_w_history
+        # max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
+        
+        # died = torch.logical_or(distance_to_orin > 5.0, max_net_contact_forces > 0.1)
         died = distance_to_orin > 5.0
         # died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.5, self._robot.data.root_pos_w[:, 2] > 15.0)
-        time_out = torch.logical_or(time_out, self._is_reach_goal)
+        # time_out = torch.logical_or(time_out, self._is_reach_goal)
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):

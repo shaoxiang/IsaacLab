@@ -1,0 +1,86 @@
+seed: 42
+
+
+# Models are instantiated using skrl's model instantiator utility
+# https://skrl.readthedocs.io/en/latest/api/utils/model_instantiators.html
+models:
+  separate: False
+  policy:  # see gaussian_model parameters
+    class: GaussianMixin
+    clip_actions: False
+    clip_log_std: True
+    min_log_std: -20.0
+    max_log_std: 2.0
+    initial_log_std: 0.0
+    network:
+      - name: net
+        input: STATES
+        layers: [512, 512]
+        activations: elu
+    output: ACTIONS
+  value:  # see deterministic_model parameters
+    class: DeterministicMixin
+    clip_actions: False
+    network:
+      - name: net
+        input: STATES
+        layers: [512, 512]
+        activations: elu
+    output: ONE
+
+
+# Rollout memory
+# https://skrl.readthedocs.io/en/latest/api/memories/random.html
+memory:
+  class: RandomMemory
+  memory_size: -1  # automatically determined (same as agent:rollouts)
+
+# configure and instantiate the agent (visit its documentation to see all the options)
+# https://skrl.readthedocs.io/en/latest/api/agents/td3.html#configuration-and-hyperparameters
+agent:
+  class: TD3
+  gradient_steps: 1
+  batch_size: 4096
+  discount_factor: 0.99
+  polyak: 0.005
+
+  actor_learning_rate: 5e-4    # actor learning rate
+  critic_learning_rate: 5e-4   # critic learning rate
+  learning_rate_scheduler": KLAdaptiveLR        # learning rate scheduler class (see torch.optim.lr_scheduler)
+  learning_rate_scheduler_kwargs":              # learning rate scheduler's kwargs (e.g. {"step_size": 1e-3})
+    step_size: 1e-3
+
+  state_preprocessor: RunningStandardScaler
+  state_preprocessor_kwargs: null
+  value_preprocessor: RunningStandardScaler
+  value_preprocessor_kwargs: null
+  random_timesteps: 80
+  learning_starts: 80
+  grad_norm_clip: 0
+
+  exploration:
+    noise: 0.1              # exploration noise
+    initial_scale: 1.0      # initial scale for the noise
+    final_scale: 1e-3       # final scale for the noise
+    timesteps: None         # timesteps for the noise decay
+
+  policy_delay: 2                        # policy delay update with respect to critic update
+  smooth_regularization_noise": None    # smooth noise for regularization
+  smooth_regularization_clip": 0.5      # clip for smooth regularization
+  rewards_shaper: None         # rewards shaping function: Callable(reward, timestep, timesteps) -> reward
+  mixed_precision: False       # enable automatic mixed precision for higher performance
+
+  # logging and checkpoint
+  experiment:
+    directory: "kaya_direct"
+    experiment_name: ""
+    write_interval: auto
+    checkpoint_interval: auto
+    store_separately: False          # whether to store checkpoints separately
+
+# Sequential trainer
+# https://skrl.readthedocs.io/en/latest/api/trainers/sequential.html
+trainer:
+  class: SequentialTrainer
+  timesteps: 4800
+  environment_info: log
