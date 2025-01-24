@@ -33,9 +33,9 @@ KAYA_CFG = ArticulationCfg(
         "driver_joints": ImplicitActuatorCfg(
             joint_names_expr=["axle_.*_joint"],
             effort_limit=10.0,
-            velocity_limit=100.0,
+            velocity_limit=50.0,
             stiffness=0.0,
-            damping=100000.0,
+            damping=100.0,
         ),
     }
 )
@@ -57,9 +57,9 @@ KAYA_TENNIS_CFG = ArticulationCfg(
         "driver_joints": ImplicitActuatorCfg(
             joint_names_expr=["axle_.*_joint"],
             effort_limit=10.0,
-            velocity_limit=100.0,
+            velocity_limit=50.0,
             stiffness=0.0,
-            damping=100000.0,
+            damping=100.0,
         ),
         # "roller_joints": ActuatorBaseCfg(
         #     joint_names_expr=["roller_.*_joint"],

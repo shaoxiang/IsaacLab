@@ -107,7 +107,7 @@ class KayaTennisEnvCfg(DirectRLEnvCfg):
     episode_length_s = 40.0
     decimation = 2
     action_space = 3
-    observation_space = 18
+    observation_space = 21
     state_space = 0
     debug_vis = True
     ui_window_class_type = KayaEnvWindow
@@ -129,11 +129,11 @@ class KayaTennisEnvCfg(DirectRLEnvCfg):
     # robot
     action_scale = 20.0
     # reward scales
-    lin_vel_reward_scale = -0.05
+    # lin_vel_reward_scale = -0.05
     ang_vel_reward_scale = -0.05
-    distance_to_goal_reward_scale = 5.0
-    lose_goal_reward_scale = -1.0
-    reach_goal_reward_scale = 60.0
+    distance_to_goal_reward_scale = 2.0
+    lose_goal_reward_scale = -5.0
+    reach_goal_reward_scale = 50.0
     action_rate_reward_scale = -0.01
     joint_accel_reward_scale = -2.5e-7
     rew_scale_alive = 0.2
@@ -245,7 +245,7 @@ class KayaTennisEnv(DirectRLEnv):
         joint_accel = torch.sum(torch.square(self._robot.data.joint_acc), dim=1)
 
         distance_to_goal = torch.linalg.norm(self._tennis_ball_rigid.data.root_pos_w - self._robot.data.root_pos_w, dim=1)
-        distance_to_goal_mapped = 1 - torch.tanh(3.0 * distance_to_goal)
+        distance_to_goal_mapped = 1 - torch.tanh(0.25 * distance_to_goal)
         # distance_to_goal_mapped = distance_to_goal < 0.5
         
         reset_ball = torch.logical_or(self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.08, self._is_reach_goal)
@@ -256,9 +256,9 @@ class KayaTennisEnv(DirectRLEnv):
             self.reset_tennis_ball_rigid(reset_ball_ids)
         
         rewards = {
-            "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
+            # "lin_vel": lin_vel * self.cfg.lin_vel_reward_scale * self.step_dt,
             "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
-            # "lose_goal": reset_ball * self.cfg.lose_goal_reward_scale,
+            "lose_goal": reset_ball * self.cfg.lose_goal_reward_scale,
             "reach_goal": self._is_reach_goal * self.cfg.reach_goal_reward_scale,
             "distance_to_goal": distance_to_goal_mapped * self.cfg.distance_to_goal_reward_scale,
             "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,

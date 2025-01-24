@@ -96,8 +96,6 @@ python source/standalone/workflows/rl_games/train.py --task=Isaac-Jetbot-Direct-
 
 ### 无人机
 python source/standalone/workflows/rl_games/train.py --task=Isaac-Quadcopter-Direct-v0
-python source/standalone/workflows/rl_games/train.py --task=Isaac-Quadcopter-Direct-v0 --checkpoint=
-
 python source/standalone/workflows/rl_games/play.py --task=Isaac-Quadcopter-Direct-v0
 python -m tensorboard.main --logdir logs/rl_games/quadcopter_direct/2024-06-05_19-17-12
 python -m tensorboard.main --logdir logs/rsl_rl/quadcopter_direct/2024-06-20_15-53-02
@@ -139,6 +137,18 @@ python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Kaya-Tennis-v0 -
 python source/standalone/workflows/rsl_rl/play.py --task=Isaac-Kaya-Tennis-Play-v0 --num_envs 2
 python source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 256 --enable_cameras --headless
 python source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 128 --enable_cameras --video --video_length 1000 --video_interval 50000 --headless
+
+python source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-Tennis-v1 --num_envs 2048 --algorithm TD3 --headless
+python source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-Tennis-v1 --num_envs 1024 --video --video_length 1000 --video_interval 200 --algorithm TD3 --headless
+
+### Agilex Robotics
+python source/standalone/workflows/rsl_rl/train.py --task=Isaac-ScoutMini-Direct-v0 --num_envs 4096 --headless
+
+
+#### Multi GPU Train
+python -m torch.distributed.run --nnodes=1 --nproc_per_node=3 source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 4096 --enable_cameras --headless --distributed
+
+python -m torch.distributed.run --nnodes=1 --nproc_per_node=3 source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 4096 --enable_cameras --video --video_length 1000 --video_interval 50000 --headless --distributed
 
 python -m tensorboard.main --logdir logs/skrl/kaya_va_direct/2025-01-22_16-27-36_ppo_torch
 python -m tensorboard.main --logdir logs/rsl_rl/kaya_tennis/2025-01-22_22-03-52
@@ -260,10 +270,6 @@ python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-Form-
 
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-Quadcopter-Form-Path-v0 --headless --resume True --load_run 2024-07-31_20-04-06 --checkpoint model_8600.pt
 
-### helps
-./isaaclab.bat -p -m pip show skrl
-./isaaclab.bat -p -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade skrl
-
 ### 更新Isaac Lab
 .\isaaclab.bat --install
 
@@ -274,9 +280,12 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple einops
 pip install git+https://github.com/leggedrobotics/rsl_rl.git
 
 单独升级 skrl
-pip install git+https://github.com/Toni-SM/skrl.git
+./isaaclab.bat -p -m pip show skrl
+./isaaclab.bat -p -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade skrl
 ./isaaclab.sh -p -m pip install git+https://github.com/Toni-SM/skrl.git@develop
+./isaaclab.sh -p -m pip install git+https://gitee.com/shaoxiang/skrl.git@develop
 .\isaaclab.bat -p -m pip install git+https://github.com/Toni-SM/skrl.git@develop
+.\isaaclab.bat -p -m pip install git+https://gitee.com/shaoxiang/skrl.git@develop
 
 单独升级 stable_baselines3
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple stable-baselines3

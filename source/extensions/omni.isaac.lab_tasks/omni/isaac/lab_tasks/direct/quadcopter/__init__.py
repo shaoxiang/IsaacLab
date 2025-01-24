@@ -22,8 +22,8 @@ from .quadcopter_cam_env import QuadcopterCameraEnv, QuadcopterRGBCameraEnvCfg
 from .quadcopter_env_play import QuadcopterEnvPlay, QuadcopterEnvPlayCfg
 from .quadcopter_avoid_obs_env import QuadcopterVisionOAEnv, QuadcopterVisionOAEnvCfg
 from .quadcopter_form_play_env import QuadcopterFormPlayEnv, QuadcopterFormPlayEnvCfg
-from .quadcopter_vision_depth_env import QuadcopterVisionDepthEnv, QuadcopterVisionDepthEnvCfg
-from .quadcopter_vision_depth_env2 import QuadcopterVisionDepthEnv2, QuadcopterVisionDepthEnvCfg2
+# from .quadcopter_vision_depth_env import QuadcopterVisionDepthEnv, QuadcopterVisionDepthEnvCfg
+# from .quadcopter_vision_depth_env2 import QuadcopterVisionDepthEnv2, QuadcopterVisionDepthEnvCfg2
 
 
 ##
@@ -167,25 +167,25 @@ gym.register(
     },
 )
 
-gym.register(
-    id="Isaac-Quadcopter-Vision-Depth-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterVisionDepthEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": QuadcopterVisionDepthEnvCfg,
-        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_ov_cfg.yaml",
-    },
-)
+# gym.register(
+#     id="Isaac-Quadcopter-Vision-Depth-v0",
+#     entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterVisionDepthEnv",
+#     disable_env_checker=True,
+#     kwargs={
+#         "env_cfg_entry_point": QuadcopterVisionDepthEnvCfg,
+#         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_ov_cfg.yaml",
+#     },
+# )
 
-gym.register(
-    id="Isaac-Quadcopter-Vision-Depth-v1",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterVisionDepthEnv2",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": QuadcopterVisionDepthEnvCfg2,
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
-        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
-        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
-    },
-)
+# gym.register(
+#     id="Isaac-Quadcopter-Vision-Depth-v1",
+#     entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterVisionDepthEnv2",
+#     disable_env_checker=True,
+#     kwargs={
+#         "env_cfg_entry_point": QuadcopterVisionDepthEnvCfg2,
+#         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
+#         "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+#         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
+#         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
+#     },
+# )
