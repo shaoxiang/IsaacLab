@@ -110,6 +110,19 @@ CUBOID_MARKER_CFG = VisualizationMarkersCfg(
         ),
     }
 )
+
+Sphere_MARKER_CFG = VisualizationMarkersCfg(
+    markers={
+        "spheroid": sim_utils.SphereCfg(
+            radius=0.2,
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.2),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+        ),
+    }
+)
+
 """Configuration for the cuboid marker."""
 
 POSITION_GOAL_MARKER_CFG = VisualizationMarkersCfg(

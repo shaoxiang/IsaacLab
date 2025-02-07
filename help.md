@@ -8,9 +8,7 @@ python source/standalone/tutorials/03_envs/create_cube_base_env.py --num_envs 8
 python source/standalone/tutorials/01_assets/run_rigid_object.py
 python source/standalone/tutorials/01_assets/run_articulation.py
 
-python source/standalone/tutorials/04_sensors/add_sensors_on_robot.py
-
-python source/standalone/tutorials/04_sensors/add_sensors_on_robot.py
+python source/standalone/tutorials/04_sensors/add_sensors_on_robot.py --enable_cameras
 python source/standalone/tutorials/04_sensors/run_ray_caster.py
 python source/standalone/tutorials/04_sensors/run_ray_caster_camera.py
 
@@ -144,6 +142,7 @@ python source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-Tennis-v1 --n
 ### Agilex Robotics
 python source/standalone/workflows/rsl_rl/train.py --task=Isaac-ScoutMini-Direct-v0 --num_envs 4096 --headless
 
+python source/standalone/workflows/rl_games/train.py --task=Isaac-ScoutMini-AV-v0 --num_envs 4096 --headless
 
 #### Multi GPU Train
 python -m torch.distributed.run --nnodes=1 --nproc_per_node=3 source/standalone/workflows/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 4096 --enable_cameras --headless --distributed
