@@ -43,19 +43,19 @@ import traceback
 
 import carb
 import omni
-from omni.isaac.cloner import GridCloner
-from omni.isaac.core.simulation_context import SimulationContext
-from omni.isaac.core.utils.viewports import set_camera_view
+from isaacsim.core.cloner import GridCloner
+from isaacsim.core.api.simulation_context import SimulationContext
+from isaacsim.core.utils.viewports import set_camera_view
 from pxr import PhysxSchema
 
-import omni.isaac.lab.sim as sim_utils
-import omni.isaac.lab.terrains as terrain_gen
-from omni.isaac.lab.assets import RigidObject, RigidObjectCfg
-from omni.isaac.lab.sensors.imu import Imu, ImuCfg
-from omni.isaac.lab.terrains.config.rough import ROUGH_TERRAINS_CFG
-from omni.isaac.lab.terrains.terrain_importer import TerrainImporter
-from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
-from omni.isaac.lab.utils.timer import Timer
+import isaaclab.sim as sim_utils
+import isaaclab.terrains as terrain_gen
+from isaaclab.assets import RigidObject, RigidObjectCfg
+from isaaclab.sensors.imu import Imu, ImuCfg
+from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG
+from isaaclab.terrains.terrain_importer import TerrainImporter
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+from isaaclab.utils.timer import Timer
 
 import queue
 import threading

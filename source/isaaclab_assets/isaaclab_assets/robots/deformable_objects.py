@@ -7,9 +7,9 @@
 Reference: 
 """
 
-import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
-from omni.isaac.lab.assets import DeformableObjectCfg
+import isaaclab.sim as sim_utils
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
+from isaaclab.assets import DeformableObjectCfg
 
 ##
 # Configuration

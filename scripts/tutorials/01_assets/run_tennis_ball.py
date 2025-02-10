@@ -18,7 +18,7 @@ This script demonstrates how to work with the deformable object and interact wit
 
 import argparse
 
-from omni.isaac.lab.app import AppLauncher
+from isaaclab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Tutorial on interacting with a deformable object.")
@@ -35,13 +35,13 @@ simulation_app = app_launcher.app
 
 import torch
 
-import omni.isaac.core.utils.prims as prim_utils
+import isaacsim.core.utils.prims as prim_utils
 
-import omni.isaac.lab.sim as sim_utils
-import omni.isaac.lab.utils.math as math_utils
-from omni.isaac.lab.assets import DeformableObject, DeformableObjectCfg
-from omni.isaac.lab.sim import SimulationContext
-from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
+import isaaclab.sim as sim_utils
+import isaaclab.utils.math as math_utils
+from isaaclab.assets import DeformableObject, DeformableObjectCfg
+from isaaclab.sim import SimulationContext
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 def design_scene():
     """Designs the scene."""

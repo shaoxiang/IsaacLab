@@ -10,21 +10,6 @@ Quacopter environment.
 import gymnasium as gym
 
 from . import agents
-from .quadcopter_env import QuadcopterEnv, QuadcopterEnvCfg
-from .quadcopter_env_smooth import QuadcopterSmoothEnv, QuadcopterSmoothEnvCfg
-from .quadcopter_env_imu import QuadcopterImuEnv, QuadcopterImuEnvCfg
-from .quadcopter_env_simple import QuadcopterEnvSimple, QuadcopterEnvSimpleCfg
-from .quadcopter_lidar_env import QuadcopterLidarEnv, QuadcopterLidarEnvCfg
-from .quadcopter_form_env import QuadcopterFormEnv, QuadcopterFormEnvCfg
-from .quadcopter_form_path_env import QuadcopterFormPathEnv, QuadcopterFormPathEnvCfg
-# from .quadcopter_camera_env import QuadcopterCameraEnv, QuadcopterRGBCameraEnvCfg
-from .quadcopter_cam_env import QuadcopterCameraEnv, QuadcopterRGBCameraEnvCfg
-from .quadcopter_env_play import QuadcopterEnvPlay, QuadcopterEnvPlayCfg
-from .quadcopter_avoid_obs_env import QuadcopterVisionOAEnv, QuadcopterVisionOAEnvCfg
-from .quadcopter_form_play_env import QuadcopterFormPlayEnv, QuadcopterFormPlayEnvCfg
-# from .quadcopter_vision_depth_env import QuadcopterVisionDepthEnv, QuadcopterVisionDepthEnvCfg
-# from .quadcopter_vision_depth_env2 import QuadcopterVisionDepthEnv2, QuadcopterVisionDepthEnvCfg2
-
 
 ##
 # Register Gym environments.
@@ -37,20 +22,19 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.quadcopter_env:QuadcopterEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
-        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
     },
 )
 
 gym.register(
     id="Isaac-Quadcopter-Smooth-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterSmoothEnv",
+    entry_point=f"{__name__}.quadcopter_env_smooth:QuadcopterSmoothEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterSmoothEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_env_smooth:QuadcopterSmoothEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
     },
@@ -58,12 +42,12 @@ gym.register(
 
 gym.register(
     id="Isaac-Quadcopter-IMU-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterImuEnv",
+    entry_point=f"{__name__}.quadcopter_env_imu:QuadcopterImuEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterImuEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_env_imu:QuadcopterImuEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
     },
@@ -71,12 +55,12 @@ gym.register(
 
 gym.register(
     id="Isaac-Quadcopter-Simple-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterEnvSimple",
+    entry_point=f"{__name__}.quadcopter_env_simple:QuadcopterEnvSimple",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterEnvSimpleCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_env_simple:QuadcopterEnvSimpleCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
     },
@@ -84,12 +68,12 @@ gym.register(
 
 gym.register(
     id="Isaac-Quadcopter-Direct-Lidar-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterLidarEnv",
+    entry_point=f"{__name__}.quadcopter_lidar_env:QuadcopterLidarEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterLidarEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_lidar_env:QuadcopterLidarEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
     },
@@ -97,22 +81,22 @@ gym.register(
 
 gym.register(
     id="Isaac-Quadcopter-Direct-play-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterEnvPlay",
+    entry_point=f"{__name__}.quadcopter_env_play:QuadcopterEnvPlay",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterEnvPlayCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_env_play:QuadcopterEnvPlayCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
     },
 )
 
 gym.register(
     id="Isaac-Quadcopter-RGB-Camera-Direct-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterCameraEnv",
+    entry_point=f"{__name__}.quadcopter_cam_env:QuadcopterCameraEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterRGBCameraEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_cam_env:QuadcopterRGBCameraEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_camera_ppo_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cam_cfg.yaml",
     },
@@ -120,22 +104,22 @@ gym.register(
 
 gym.register(
     id="Isaac-Quadcopter-Vision-OA-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterVisionOAEnv",
+    entry_point=f"{__name__}.quadcopter_avoid_obs_env:QuadcopterVisionOAEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterVisionOAEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_avoid_obs_env:QuadcopterVisionOAEnvCfg",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_ov_cfg.yaml",
     },
 )
 
 gym.register(
     id="Isaac-Quadcopter-Form-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterFormEnv",
+    entry_point=f"{__name__}.quadcopter_form_env:QuadcopterFormEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterFormEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_form_env:QuadcopterFormEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_form_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPOFormRunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPOFormRunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_form_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_form_cfg.yaml",
     },
@@ -143,12 +127,12 @@ gym.register(
 
 gym.register(
     id="Isaac-Quadcopter-Form-Path-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterFormPathEnv",
+    entry_point=f"{__name__}.quadcopter_form_path_env:QuadcopterFormPathEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterFormPathEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_form_path_env:QuadcopterFormPathEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_form_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPOFormRunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPOFormRunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_form_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_form_cfg.yaml",
     },
@@ -156,12 +140,12 @@ gym.register(
 
 gym.register(
     id="Isaac-Quadcopter-Form-Play-v0",
-    entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterFormPlayEnv",
+    entry_point=f"{__name__}.quadcopter_form_play_env:QuadcopterFormPlayEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": QuadcopterFormPlayEnvCfg,
+        "env_cfg_entry_point": f"{__name__}.quadcopter_form_play_env:QuadcopterFormPlayEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_form_cfg.yaml",
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPOFormPlayRunnerCfg,
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPOFormPlayRunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_form_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_form_cfg.yaml",
     },
@@ -169,22 +153,22 @@ gym.register(
 
 # gym.register(
 #     id="Isaac-Quadcopter-Vision-Depth-v0",
-#     entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterVisionDepthEnv",
+#     entry_point=f"{__name__}.quadcopter_vision_depth_env:QuadcopterVisionDepthEnv",
 #     disable_env_checker=True,
 #     kwargs={
-#         "env_cfg_entry_point": QuadcopterVisionDepthEnvCfg,
+#         "env_cfg_entry_point": f"{__name__}.quadcopter_vision_depth_env:QuadcopterVisionDepthEnvCfg",
 #         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_ov_cfg.yaml",
 #     },
 # )
 
 # gym.register(
 #     id="Isaac-Quadcopter-Vision-Depth-v1",
-#     entry_point="omni.isaac.lab_tasks.direct.quadcopter:QuadcopterVisionDepthEnv2",
+#     entry_point=f"{__name__}.quadcopter_vision_depth_env2:QuadcopterVisionDepthEnv2",
 #     disable_env_checker=True,
 #     kwargs={
-#         "env_cfg_entry_point": QuadcopterVisionDepthEnvCfg2,
+#         "env_cfg_entry_point": f"{__name__}.quadcopter_vision_depth_env2:QuadcopterVisionDepthEnvCfg2",
 #         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-#         "rsl_rl_cfg_entry_point": agents.rsl_rl_ppo_cfg.QuadcopterPPORunnerCfg,
+#         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:QuadcopterPPORunnerCfg",
 #         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
 #         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
 #     },

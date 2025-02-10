@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import argparse
 
-from omni.isaac.lab.app import AppLauncher
+from isaaclab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Demo on spawning different objects in multiple environments.")
@@ -40,8 +40,8 @@ import random
 import omni.usd
 from pxr import Gf, Sdf
 
-import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import (
+import isaaclab.sim as sim_utils
+from isaaclab.assets import (
     Articulation,
     ArticulationCfg,
     AssetBaseCfg,
@@ -52,16 +52,16 @@ from omni.isaac.lab.assets import (
     DeformableObject,
     DeformableObjectCfg,
 )
-from omni.isaac.lab.scene import InteractiveScene, InteractiveSceneCfg
-from omni.isaac.lab.sim import SimulationContext
-from omni.isaac.lab.utils import Timer, configclass
-from omni.isaac.lab.utils.assets import ISAACLAB_NUCLEUS_DIR
-from omni.isaac.lab_assets import TEDDY_BEAR_CFG, TENNIS_BALL_CFG 
+from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
+from isaaclab.sim import SimulationContext
+from isaaclab.utils import Timer, configclass
+from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
+from isaaclab_assets import TEDDY_BEAR_CFG, TENNIS_BALL_CFG 
 ##
 # Pre-defined Configuration
 ##
 
-from omni.isaac.lab_assets.anymal import ANYDRIVE_3_LSTM_ACTUATOR_CFG  # isort: skip
+from isaaclab_assets.anymal import ANYDRIVE_3_LSTM_ACTUATOR_CFG  # isort: skip
 
 
 ##

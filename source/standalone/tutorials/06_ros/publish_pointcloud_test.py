@@ -17,12 +17,12 @@ This script demonstrates how to run IsaacSim via the AppLauncher
 
 
 import argparse
-from omni.isaac.lab.app import AppLauncher
+from isaaclab.app import AppLauncher
 
 # create argparser
 parser = argparse.ArgumentParser(description="Tutorial on running IsaacSim via the AppLauncher.")
 parser.add_argument("--size", type=float, default=1.0, help="Side-length of cuboid")
-# SimulationApp arguments https://docs.omniverse.nvidia.com/py/isaacsim/source/extensions/omni.isaac.kit/docs/index.html?highlight=simulationapp#omni.isaac.kit.SimulationApp
+# SimulationApp arguments https://docs.omniverse.nvidia.com/py/isaacsim/source/extensions/omni.isaac.kit/docs/index.html?highlight=simulationapp#isaacsim.SimulationApp
 parser.add_argument(
     "--width", type=int, default=1280, help="Width of the viewport and generated images. Defaults to 1280"
 )
@@ -40,7 +40,7 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
-import omni.isaac.lab.sim as sim_utils
+import isaaclab.sim as sim_utils
 import omni
 import carb
 import numpy as np

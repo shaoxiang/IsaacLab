@@ -16,7 +16,7 @@
 
 import argparse
 
-from omni.isaac.lab.app import AppLauncher
+from isaaclab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="This script demonstrates different types of markers.")
@@ -33,13 +33,13 @@ simulation_app = app_launcher.app
 
 import torch
 
-import omni.isaac.lab.sim as sim_utils
-import omni.isaac.core.utils.prims as prim_utils
-from omni.isaac.lab.markers import VisualizationMarkers, VisualizationMarkersCfg
-from omni.isaac.lab.sim import SimulationContext
-from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
-from omni.isaac.lab.utils.math import quat_from_angle_axis
-from omni.isaac.lab.assets import RigidObject, RigidObjectCfg
+import isaaclab.sim as sim_utils
+import isaacsim.core.utils.prims as prim_utils
+from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
+from isaaclab.sim import SimulationContext
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
+from isaaclab.utils.math import quat_from_angle_axis
+from isaaclab.assets import RigidObject, RigidObjectCfg
 import numpy as np
 
 for i in range(100):
