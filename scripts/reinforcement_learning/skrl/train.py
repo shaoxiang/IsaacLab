@@ -41,7 +41,7 @@ parser.add_argument(
     "--algorithm",
     type=str,
     default="PPO",
-    choices=["AMP", "PPO", "IPPO", "MAPPO"],
+    choices=["AMP", "PPO", "IPPO", "MAPPO", "TD3"],
     help="The RL algorithm used for training the skrl agent.",
 )
 

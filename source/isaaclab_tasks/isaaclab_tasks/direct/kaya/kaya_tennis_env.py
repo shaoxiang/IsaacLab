@@ -106,7 +106,8 @@ class KayaTennisEnvCfg(DirectRLEnvCfg):
     # env
     episode_length_s = 40.0
     decimation = 2
-    action_space = 3
+    # action_space = 3
+    action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(3,))
     observation_space = 21
     state_space = 0
     debug_vis = True
@@ -260,7 +261,7 @@ class KayaTennisEnv(DirectRLEnv):
             "ang_vel": ang_vel * self.cfg.ang_vel_reward_scale * self.step_dt,
             "lose_goal": reset_ball * self.cfg.lose_goal_reward_scale,
             "reach_goal": self._is_reach_goal * self.cfg.reach_goal_reward_scale,
-            "distance_to_goal": distance_to_goal_mapped * self.cfg.distance_to_goal_reward_scale,
+            "distance_to_goal": distance_to_goal_mapped * self.cfg.distance_to_goal_reward_scale * self.step_dt,
             "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,
             # "joint_accel": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
             "rew_alive": self.cfg.rew_scale_alive * (1.0 - self.reset_terminated.float()) * self.step_dt,

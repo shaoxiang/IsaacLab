@@ -18,9 +18,8 @@ from isaaclab.utils import configclass
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.duck import DUCK_CFG  # isort: skip
+from isaaclab_assets.robots.duck import DUCK_CFG  # isort: skip
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
-
 
 @configclass
 class EventCfg:

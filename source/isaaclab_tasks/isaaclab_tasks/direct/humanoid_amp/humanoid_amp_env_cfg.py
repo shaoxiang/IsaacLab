@@ -12,13 +12,20 @@ from isaaclab_assets import HUMANOID_28_CFG
 
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
-from isaaclab.envs import DirectRLEnvCfg
+from isaaclab.envs import DirectRLEnvCfg, ViewerCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
 
 MOTIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "motions")
 
+import isaaclab.sim as sim_utils
+from isaaclab.terrains import FlatPatchSamplingCfg, TerrainImporter, TerrainImporterCfg
+
+##
+# Pre-defined configs
+##
+from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort:skip
 
 @configclass
 class HumanoidAmpEnvCfg(DirectRLEnvCfg):
@@ -35,7 +42,7 @@ class HumanoidAmpEnvCfg(DirectRLEnvCfg):
     num_amp_observations = 2
     amp_observation_space = 81
 
-    early_termination = True
+    early_termination = False # True
     termination_height = 0.5
 
     motion_file: str = MISSING
@@ -48,6 +55,9 @@ class HumanoidAmpEnvCfg(DirectRLEnvCfg):
     * random-start: pose and joint states are set by sampling motion at the start (time zero).
     """
 
+    # simulation settings
+    viewer: ViewerCfg = ViewerCfg(eye=(30.0, 30.0, 8.0))
+
     # simulation
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 60,
@@ -58,8 +68,31 @@ class HumanoidAmpEnvCfg(DirectRLEnvCfg):
         ),
     )
 
+    # Parse terrain generation
+    # terrain_gen_cfg = ROUGH_TERRAINS_CFG.replace(curriculum=False, color_scheme="random")
+
+    # # Handler for terrains importing
+    # terrain = TerrainImporterCfg(
+    #     prim_path="/World/ground",
+    #     terrain_type="generator",
+    #     terrain_generator=terrain_gen_cfg,
+    #     max_init_terrain_level=None,
+    #     collision_group=-1,
+    #     physics_material=sim_utils.RigidBodyMaterialCfg(
+    #         friction_combine_mode="multiply",
+    #         restitution_combine_mode="multiply",
+    #         static_friction=1.0,
+    #         dynamic_friction=1.0,
+    #     ),
+    #     visual_material=sim_utils.MdlFileCfg(
+    #         mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
+    #         project_uvw=True,
+    #     ),
+    #     debug_vis=False,
+    # )
+
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=10.0, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=True)
 
     # robot
     robot: ArticulationCfg = HUMANOID_28_CFG.replace(prim_path="/World/envs/env_.*/Robot").replace(

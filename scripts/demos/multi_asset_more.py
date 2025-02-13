@@ -61,7 +61,7 @@ from isaaclab_assets import TEDDY_BEAR_CFG, TENNIS_BALL_CFG
 # Pre-defined Configuration
 ##
 
-from isaaclab_assets.anymal import ANYDRIVE_3_LSTM_ACTUATOR_CFG  # isort: skip
+from isaaclab_assets.robots.anymal import ANYDRIVE_3_LSTM_ACTUATOR_CFG  # isort: skip
 
 
 ##

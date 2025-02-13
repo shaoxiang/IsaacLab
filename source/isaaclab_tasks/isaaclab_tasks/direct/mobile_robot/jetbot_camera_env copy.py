@@ -32,7 +32,7 @@ from isaaclab.utils import configclass
 from isaaclab.assets import ArticulationCfg, Articulation, AssetBaseCfg, AssetBase, RigidObject, RigidObjectCfg
 import isaaclab.sim as sim_utils
 from isaaclab.sensors import TiledCameraCfg, CameraCfg
-from isaaclab_assets.jetbot import JETBOT_CFG
+from isaaclab_assets.robots.jetbot import JETBOT_CFG
 import pdb
 import math
 

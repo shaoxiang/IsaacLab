@@ -62,6 +62,12 @@ class HumanoidAmpEnv(DirectRLEnv):
                 ),
             ),
         )
+
+        # self.cfg.terrain.num_envs = self.scene.cfg.num_envs
+        # self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
+        # self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
+        # self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
+
         # clone and replicate
         self.scene.clone_environments(copy_from_source=False)
         # add articulation to scene

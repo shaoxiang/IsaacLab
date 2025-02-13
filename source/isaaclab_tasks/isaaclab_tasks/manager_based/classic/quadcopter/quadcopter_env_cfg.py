@@ -24,7 +24,7 @@ from isaaclab.managers.action_manager import ActionTerm, ActionTermCfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.quadcopter import CRAZYFLIE_CFG  # isort:skip
+from isaaclab_assets.robots.quadcopter import CRAZYFLIE_CFG  # isort:skip
 
 
 ##
