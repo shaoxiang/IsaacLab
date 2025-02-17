@@ -21,6 +21,7 @@ MOTIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "motions"
 
 import isaaclab.sim as sim_utils
 from isaaclab.terrains import FlatPatchSamplingCfg, TerrainImporter, TerrainImporterCfg
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
 
 ##
 # Pre-defined configs
@@ -42,7 +43,7 @@ class HumanoidAmpEnvCfg(DirectRLEnvCfg):
     num_amp_observations = 2
     amp_observation_space = 81
 
-    early_termination = False # True
+    early_termination = True
     termination_height = 0.5
 
     motion_file: str = MISSING
@@ -90,6 +91,17 @@ class HumanoidAmpEnvCfg(DirectRLEnvCfg):
     #     ),
     #     debug_vis=False,
     # )
+
+    terrain = TerrainImporterCfg(
+        prim_path="/World/ground",
+        terrain_type="usd",
+        usd_path=f"{ISAAC_NUCLEUS_DIR}/Environments/Simple_Warehouse/warehouse.usd",
+        # usd_path=f"{ISAAC_NUCLEUS_DIR}/Environments/Hospital/hospital.usd",
+        # usd_path=f"{ISAAC_NUCLEUS_DIR}/Environments/Outdoor/Rivermark/rivermark.usd",
+        # usd_path=f"{NVIDIA_NUCLEUS_DIR}/Assets/Scenes/production_samples/samples/fx_campfire_particles.usda",
+        # usd_path=f"D:/omniverse/Downloads/Assets/Scenes/Templates/Basic/abandoned_parking_lot.usd",
+        # usd_path=f"D:/omniverse/Downloads/Assets/Scenes/Templates/Outdoor/Puddles.usd",
+    )
 
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=True)

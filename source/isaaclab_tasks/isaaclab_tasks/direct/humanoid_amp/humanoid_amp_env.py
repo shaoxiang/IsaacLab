@@ -52,20 +52,20 @@ class HumanoidAmpEnv(DirectRLEnv):
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
         # add ground plane
-        spawn_ground_plane(
-            prim_path="/World/ground",
-            cfg=GroundPlaneCfg(
-                physics_material=sim_utils.RigidBodyMaterialCfg(
-                    static_friction=1.0,
-                    dynamic_friction=1.0,
-                    restitution=0.0,
-                ),
-            ),
-        )
+        # spawn_ground_plane(
+        #     prim_path="/World/ground",
+        #     cfg=GroundPlaneCfg(
+        #         physics_material=sim_utils.RigidBodyMaterialCfg(
+        #             static_friction=1.0,
+        #             dynamic_friction=1.0,
+        #             restitution=0.0,
+        #         ),
+        #     ),
+        # )
 
-        # self.cfg.terrain.num_envs = self.scene.cfg.num_envs
-        # self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
-        # self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
+        self.cfg.terrain.num_envs = self.scene.cfg.num_envs
+        self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
+        self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
         # self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
 
         # clone and replicate

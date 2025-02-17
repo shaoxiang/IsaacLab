@@ -43,9 +43,9 @@ class KayaTennisPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        actor_hidden_dims=[512, 512],
-        critic_hidden_dims=[512, 512],
-        activation="elu",
+        actor_hidden_dims=[256, 128],
+        critic_hidden_dims=[1024, 512, 256],
+        activation="tanh",
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

@@ -153,12 +153,12 @@ python -m tensorboard.main --logdir logs/skrl/kaya_va_direct/2025-01-22_16-27-36
 python -m tensorboard.main --logdir logs/rsl_rl/kaya_tennis/2025-01-22_22-03-52
 
 ### Duck
-#### Direct
+#### Direct Duck
 python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-Velocity-Flat-Duck-Direct-v0 --num_envs 4096 --headless
 python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-Velocity-Flat-Duck-Direct-v0 --num_envs 4096 --headless --resume True
 python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duck-Direct-v0 --num_envs 4 --headless --livestream 1
 
-#### Managed
+#### Managed Duck
 python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-Velocity-Flat-Duck-v0 --num_envs 4096 --headless
 python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duck-Play-v0
 python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-Velocity-Flat-Duck-Play-v0 --headless --livestream 1
@@ -167,6 +167,7 @@ python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-Velocity-Flat
 python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-Velocity-Flat-BDX-Play-v0
 python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-Velocity-Flat-BDX-Play-v0 --headless --livestream 1
 python -m tensorboard.main --logdir logs/rsl_rl/bdx_flat/2025-01-17_20-30-01
+python source/isaaclab_tasks/isaaclab_tasks/direct/humanoid_amp/motions/motion_viewer.py --file humanoid_walk.npz --render-scene True
 
 ### teddy_bear
 python scripts/environments/state_machine/lift_teddy_bear.py --num_envs 4
@@ -218,6 +219,8 @@ python scripts/reinforcement_learning/skrl/play.py --task=Isaac-Humanoid-AMP-Dan
 python scripts/reinforcement_learning/skrl/play.py --task=Isaac-Humanoid-AMP-Run-Direct-v0 --num_envs 32 --algorithm AMP --real-time
 python scripts/reinforcement_learning/skrl/play.py --task=Isaac-Humanoid-AMP-Walk-Direct-v0 --num_envs 32 --algorithm AMP --real-time
 
+python -m tensorboard.main --logdir logs/skrl/humanoid_amp_walk/2025-02-13_08-01-20_amp_torch
+
 ## Test
 ### Test contact_sensor
 python source/isaaclab/test/sensors/test_contact_sensor.py
@@ -248,7 +251,7 @@ data = json.load(open(os.path.join(d, file)))
 with open(os.path.join(d, file), encoding='utf-8') as f:
     data = json.load(f)
 
-* 如遇到：
+如遇到：
 File "/root/anaconda3/envs/sx_isaaclab/lib/python3.10/site-packages/rsl_rl/utils/utils.py", line 83, in store_code_state
     f.write(content)
 UnicodeEncodeError: 'ascii' codec can't encode characters in position 4947-4949: ordinal not in range(128)
@@ -336,12 +339,26 @@ git clone https://hf-mirror.com/datasets/unitreerobotics/LAFAN1_Retargeting_Data
 
 ### isaac lab 安装相关
 
-软链接到 _isaac_sim
-
+* 软链接到 _isaac_sim
+```
 ln -s /home/dell/.local/share/ov/pkg/isaac-sim-4.2.0 _isaac_sim
+```
 
-conda 换源
+* 创建 conda env
+```
+.\isaaclab.bat --conda my_labv2
+conda activate my_labv2
+```
 
+* 安装 isaac lab
+```
+.\isaaclab.bat --install
+```
+
+#### tips
+* conda 换源
+
+```bash
 channels:
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
@@ -361,3 +378,9 @@ custom_channels:
   pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
   pytorch-lts: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
   simpleitk: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+```
+
+* conda remove env
+```
+conda env remove --name <environment_name>
+```
