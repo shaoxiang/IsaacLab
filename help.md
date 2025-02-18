@@ -221,14 +221,23 @@ python scripts/reinforcement_learning/skrl/play.py --task=Isaac-Humanoid-AMP-Wal
 
 python -m tensorboard.main --logdir logs/skrl/humanoid_amp_walk/2025-02-13_08-01-20_amp_torch
 
-## Test
-### Test contact_sensor
+### Test
+#### Test contact_sensor
 python source/isaaclab/test/sensors/test_contact_sensor.py
 
-### Test Imu sensor
+#### Test Imu sensor
 python source/isaaclab/test/sensors/test_imu.py
 python source/isaaclab/test/sensors/check_imu_sensor.py
 python scripts/tutorials/06_ros/imu_sensor_to_ros.py
+
+#### Test Camera
+
+python scripts/tutorials/04_sensors/add_more_sensors_on_robot.py --enable_cameras
+
+### ROS
+python scripts/tutorials/06_ros/tiled_camera.py --enable_cameras
+python scripts/tutorials/06_ros/tiled_camera_threading.py --enable_cameras
+python scripts/tutorials/06_ros/camera.py --enable_cameras
 
 #### lifelong_slam
 python .\source\standalone\lidar_slam\play.py --task=Isaac-Quadcopter-Direct-Lidar-v0 --load_run 2024-10-22_13-08-21 --checkpoint model_1000.pt
