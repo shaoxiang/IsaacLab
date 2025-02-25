@@ -17,12 +17,13 @@ Visual test script for the imu sensor from the Orbit framework.
 
 import argparse
 
-from omni.isaac.kit import SimulationApp
+from isaaclab.app import AppLauncher
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Imu Test Script")
+parser = argparse.ArgumentParser(description="This script demonstrates the different camera sensor implementations.")
+parser.add_argument("--num_envs", type=int, default=10, help="Number of environments to spawn.")
 parser.add_argument("--headless", action="store_true", default=False, help="Force display off at all times.")
-parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to clone.")
+parser.add_argument("--disable_fabric", action="store_true", help="Disable Fabric API and use USD instead.")
 parser.add_argument(
     "--terrain_type",
     type=str,
@@ -30,11 +31,14 @@ parser.add_argument(
     choices=["generator", "usd", "plane"],
     help="Type of terrain to import. Can be 'generator' or 'usd' or 'plane'.",
 )
+# append AppLauncher cli args
+AppLauncher.add_app_launcher_args(parser)
+# parse the arguments
 args_cli = parser.parse_args()
 
 # launch omniverse app
-config = {"headless": args_cli.headless}
-simulation_app = SimulationApp(config)
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
@@ -60,7 +64,7 @@ from isaaclab.utils.timer import Timer
 import queue
 import threading
 ext_manager = omni.kit.app.get_app().get_extension_manager()
-ext_manager.set_extension_enabled_immediate("omni.isaac.ros2_bridge", True)
+ext_manager.set_extension_enabled_immediate("isaacsim.ros2.bridge", True)
 
 try:
     import rclpy

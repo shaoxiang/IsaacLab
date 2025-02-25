@@ -97,7 +97,7 @@ import threading
 import omni
 import carb
 ext_manager = omni.kit.app.get_app().get_extension_manager()
-ext_manager.set_extension_enabled_immediate("omni.isaac.ros2_bridge", True)
+ext_manager.set_extension_enabled_immediate("isaacsim.ros2.bridge", True)
 
 try:
     import rclpy
@@ -130,11 +130,12 @@ class RobotBaseNode():
         ros_image.data = np_img.tobytes()
         self.image_pub[robot_num].publish(ros_image)
 
-    def run(self):
+    def run(self, thread_id):
         while rclpy.ok():
             tiled_images_data = data_queue.get()  # 阻塞，直到队列中有元素  
             for idx, img in enumerate(tiled_images_data):
                 # ROS2 data
+                print(f"Consumer {thread_id} processing {idx}")
                 self.publish_tiled_image(img, idx)
             data_queue.task_done()  # 表示前一个入队任务已经完成  
             rclpy.spin_once(self.node, timeout_sec = 0)
@@ -150,8 +151,10 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     try:
         rclpy.init()  
         camera_node = RobotBaseNode(args_cli.num_envs)
-        ros_thread = threading.Thread(target=camera_node.run)
-        ros_thread.start()
+        for i in range(args_cli.num_envs):
+            ros_thread = threading.Thread(target=camera_node.run, args=(i,), daemon=True)
+            ros_thread.start()
+
     except Exception as error:
         # If anything causes your compute to fail report the error and return False
         carb.log_error("init ros2 node failed!" + str(error))

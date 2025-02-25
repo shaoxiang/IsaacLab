@@ -9,10 +9,10 @@ This script demonstrates the different camera sensors that can be attached to a 
 .. code-block:: bash
 
     # Usage
-    ./isaaclab.sh -p scripts/tutorials/06_ros/tiled_camera.py --enable_cameras
+    ./isaaclab.sh -p scripts/tutorials/06_ros/tiled_camera_multi_node.py --enable_cameras
 
     # Usage in headless mode
-    ./isaaclab.sh -p scripts/tutorials/06_ros/tiled_camera.py --headless --enable_cameras
+    ./isaaclab.sh -p scripts/tutorials/06_ros/tiled_camera_multi_node.py --headless --enable_cameras
 
 """
 
@@ -92,7 +92,11 @@ class SensorsSceneCfg(InteractiveSceneCfg):
         offset=TiledCameraCfg.OffsetCfg(pos=(0.510, 0.0, 0.015), rot=(0.5, -0.5, 0.5, -0.5), convention="ros"),
     )
 
+import queue
+import threading
+import concurrent.futures
 import omni
+import carb
 ext_manager = omni.kit.app.get_app().get_extension_manager()
 ext_manager.set_extension_enabled_immediate("isaacsim.ros2.bridge", True)
 
@@ -103,27 +107,33 @@ try:
     from sensor_msgs.msg import Image
     print("import rclpy success!")
 except Exception as e:
-    print(f"Error import rclpy: {e}")
+    carb.log_error("Error import rclpy: " + str(e))
 
 class RobotBaseNode(Node):
-    def __init__(self, num_envs):
-        super().__init__('tiled_camera_driver_node')
+    def __init__(self, robot_name):
+        super().__init__(f'node_{robot_name}')  # Unique node name
         qos_profile = QoSProfile(depth=10)
-        self.image_pub = []
-        for i in range(num_envs):
-            self.image_pub.append(self.create_publisher(Image, f'robot{i}/tiled_camera', qos_profile))
+        self.image_pub = self.create_publisher(Image, f'{robot_name}/tiled_camera', qos_profile)
+        self.robot_frame_id = f"{robot_name}/camera_frame"
+        self.data_queue = queue.Queue()
         
-    def publish_tiled_image(self, cam_image, robot_num):
+    def publish_tiled_image(self, cam_image):
         np_img = cam_image.detach().cpu().numpy()
         ros_image = Image()
         ros_image.header.stamp = self.get_clock().now().to_msg()
-        ros_image.header.frame_id = f"robot{robot_num}/camera_frame"
+        ros_image.header.frame_id = self.robot_frame_id
         ros_image.height = np_img.shape[0]
         ros_image.width = np_img.shape[1]
         ros_image.encoding = "rgb8"
         ros_image.step = np_img.shape[1] * 3
         ros_image.data = np_img.tobytes()
-        self.image_pub[robot_num].publish(ros_image)
+        self.image_pub.publish(ros_image)
+
+    def run(self):
+        while rclpy.ok():
+            tiled_image_data = self.data_queue.get()  # 阻塞，直到队列中有元素  
+            self.publish_tiled_image(tiled_image_data)
+            self.data_queue.task_done()  # 表示前一个入队任务已经完成  
 
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     """Run the simulator."""
@@ -131,10 +141,21 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     sim_dt = sim.get_physics_dt()
     sim_time = 0.0
     count = 0
-
-    # ROS2 Bridge
+    publishers = []
+    # ROS2 Node
     rclpy.init()
-    base_node = RobotBaseNode(args_cli.num_envs)
+    try:
+        for i in range(args_cli.num_envs):
+            robot_name = f'anymal_c_{i}'
+            publisher_node = RobotBaseNode(robot_name)
+            publishers.append(publisher_node)  # Keep track of nodes
+            # Use a separate thread or process for each spin()
+            # This is CRUCIAL for concurrent execution
+            thread = threading.Thread(target=publisher_node.run, daemon=True)
+            thread.start()
+    except Exception as error:
+        # If anything causes your compute to fail report the error and return False
+        carb.log_error("init ros2 node failed!" + str(error))
 
     # Simulate physics
     while simulation_app.is_running():
@@ -184,12 +205,12 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
 
         # publish all tiled RGB images
         tiled_images = scene["tiled_camera"].data.output["rgb"]
-        for idx, img in enumerate(tiled_images):
-            # ROS2 data
-            base_node.publish_tiled_image(img, idx)
-        rclpy.spin_once(base_node, timeout_sec = 0)
+        for i in range(args_cli.num_envs):  # Distribute frames (example)
+            publishers[i].data_queue.put(tiled_images[i])
 
-    base_node.destroy_node()
+    # Clean shutdown of all nodes (Important!)
+    for publisher_node in publishers:
+        publisher_node.destroy_node()
     rclpy.shutdown()
 
 def main():

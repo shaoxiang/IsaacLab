@@ -269,6 +269,8 @@ H1_MINIMAL_CFG.spawn.usd_path = f"{ISAACLAB_NUCLEUS_DIR}/Robots/Unitree/H1/h1_mi
 This configuration removes most collision meshes to speed up simulation.
 """
 
+H1_MINIMAL_ROS_CFG = H1_CFG.copy()
+H1_MINIMAL_ROS_CFG.spawn.usd_path = f"{ISAACLAB_NUCLEUS_DIR}/Robots/Unitree/H1/h1_minimal_ros.usd"
 
 G1_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(

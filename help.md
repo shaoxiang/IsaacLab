@@ -4,6 +4,7 @@ python scripts/tutorials/00_sim/create_empty.py
 python scripts/tutorials/00_sim/launch_app.py
 
 python scripts/tutorials/03_envs/create_cube_base_env.py --num_envs 8
+python scripts/tutorials/03_envs/policy_inference_in_usd.py --checkpoint assets/Policies/Isaac-Velocity-Rough-H1-v0/policy.pt
 
 python scripts/tutorials/01_assets/run_rigid_object.py
 python scripts/tutorials/01_assets/run_articulation.py
@@ -207,6 +208,9 @@ python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-Quadcopter-Vi
 
 python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-Humanoid-Direct-v0 
 
+### SLAM
+python scripts/standalone/lidar_imu_pub/main.py --checkpoint assets/Policies/Isaac-Velocity-Rough-H1-v0/policy.pt
+
 ### AMP
 #### Humanoid-AMP
 python scripts/reinforcement_learning/skrl/train.py --task=Isaac-Humanoid-AMP-Dance-Direct-v0 --headless --algorithm AMP
@@ -314,6 +318,10 @@ pip install git+https://github.com/leggedrobotics/rsl_rl.git
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple stable-baselines3
 pip install git+https://github.com/DLR-RM/stable-baselines3
 
+单独升级 robomimic
+sudo apt install cmake build-essential
+./isaaclab.sh -p -m pip install git+https://gitee.com/shaoxiang/robomimic
+
 ### asserts error
 #### 将目录替换成你自己的下载的即可
 .\isaac-sim.bat --/persistent/isaac/asset_root/default="D:\omniverse\Downloads\Assets\Isaac\4.2"
@@ -351,6 +359,12 @@ git clone https://hf-mirror.com/datasets/unitreerobotics/LAFAN1_Retargeting_Data
 * 软链接到 _isaac_sim
 ```
 ln -s /home/dell/.local/share/ov/pkg/isaac-sim-4.2.0 _isaac_sim
+ln -s /home/ai/omniverse/pkg/isaac-sim-4.5.0 _isaac_sim
+```
+
+```
+cmd需要管理员权限
+mklink /D _isaac_sim D:\OMNIVERSE\pkg\isaac-sim-4.5.0
 ```
 
 * 创建 conda env
@@ -392,4 +406,9 @@ custom_channels:
 * conda remove env
 ```
 conda env remove --name <environment_name>
+```
+
+* ROS 配置
+```
+
 ```
