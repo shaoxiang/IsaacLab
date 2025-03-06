@@ -50,8 +50,7 @@ from isaaclab.utils import configclass
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.anymal import ANYMAL_C_CFG  # isort: skip
-
+from isaaclab_assets.robots.anymal import ANYMAL_C_CFG, ANYMAL_LIDAR_CFG  # isort: skip
 
 @configclass
 class SensorsSceneCfg(InteractiveSceneCfg):
@@ -99,12 +98,26 @@ class SensorsSceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-        debug_vis=False,
+        debug_vis=True,
         mesh_prim_paths=["/World/defaultGroundPlane"],
     )
+
+    # height_scanner = RayCasterCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base/lidar_cage",
+    #     update_period=0.02,
+    #     offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 1.0)),
+    #     attach_yaw_only=True,
+    #     pattern_cfg=patterns.BpearlPatternCfg(),
+    #     debug_vis=True,
+    #     mesh_prim_paths=["/World/defaultGroundPlane"],
+    # )
+
+    # height_scanner = ANYMAL_LIDAR_CFG
+
     contact_forces = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/.*_FOOT", update_period=0.0, history_length=6, debug_vis=False
     )
+
     lidar = RTXRayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/lidar",
         offset=RTXRayCasterCfg.OffsetCfg(),
@@ -169,6 +182,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
         print("-------------------------------")
         print(scene["height_scanner"])
         print("Received max height value: ", torch.max(scene["height_scanner"].data.ray_hits_w[..., -1]).item())
+        # print("Received height value: ", scene["height_scanner"].data.ray_hits_w[..., -1])
         print("-------------------------------")
         print(scene["contact_forces"])
         print("Received max contact force of: ", torch.max(scene["contact_forces"].data.net_forces_w).item())

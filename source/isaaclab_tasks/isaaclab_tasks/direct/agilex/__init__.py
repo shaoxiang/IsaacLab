@@ -34,6 +34,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.scout_mini_avoidance_env:ScoutMiniAVEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:ScoutMiniAVPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_camera_ppo_cfg.yaml",
     },
 )

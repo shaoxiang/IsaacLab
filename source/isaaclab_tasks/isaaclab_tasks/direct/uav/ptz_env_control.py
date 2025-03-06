@@ -32,6 +32,8 @@ import omni
 import torch
 import io
 
+import Semantics
+
 class PTZControlEnvWindow(BaseEnvWindow):
     """Window manager for the UAV environment."""
 
@@ -70,7 +72,7 @@ class PTZSceneCfg(InteractiveSceneCfg):
         prim_path="/World/envs/env_.*/person",
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0, 12.0), rot=(0.70711, 0.70711, 0.0, 0.0)),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/People/Characters/biped_demo/biped_demo_meters.usd",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/People/Characters/biped_demo/biped_rigidbody.usd",
             scale=(1.0, 1.0, 1.0),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -126,16 +128,16 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
     # (0.70711, 0.0, 0.70711, 0.0)
 
     # camera
-    # tiled_camera: TiledCameraCfg = TiledCameraCfg(
-    #     prim_path="/World/envs/env_.*/Robot/body/Camera",
-    #     offset=TiledCameraCfg.OffsetCfg(pos=(-0.024216989562340085, -0.07150677787090418, 0.00604856209541946), rot=(0.70711, 0.0, 0.70711, 0.0), convention="ros"),
-    #     data_types=["rgb", "depth"],
-    #     spawn=sim_utils.PinholeCameraCfg(
-    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 50.0)
-    #     ),
-    #     width=480,
-    #     height=320,
-    # )
+    tiled_camera: TiledCameraCfg = TiledCameraCfg(
+        prim_path="/World/envs/env_.*/Robot/body/Camera",
+        offset=TiledCameraCfg.OffsetCfg(pos=(-0.024216989562340085, -0.07150677787090418, 0.00604856209541946), rot=(0.70711, 0.0, 0.70711, 0.0), convention="ros"),
+        data_types=["rgb", "depth"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 50.0)
+        ),
+        width=480,
+        height=320,
+    )
 
     # contact sensor
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
@@ -147,7 +149,7 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/person",
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0, 12.0), rot=(0.70711, 0.70711, 0.0, 0.0)),
         spawn=sim_utils.UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/People/Characters/biped_demo/biped_demo_meters.usd",
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/People/Characters/biped_demo/biped_rigidbody.usd",
             scale=(1.0, 1.0, 1.0),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=True,
@@ -156,7 +158,7 @@ class PTZControlEnvCfg(DirectRLEnvCfg):
     )
 
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=100.0, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=5.0, replicate_physics=True)
 
     # robot
     robot: ArticulationCfg = UAV_CFG.replace(prim_path="/World/envs/env_.*/Robot")
@@ -256,11 +258,20 @@ class PTZControlEnv(DirectRLEnv):
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
         # add camera
-        # self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
-        # self.scene.sensors["tiled_camera"] = self._tiled_camera
+        self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
+        self.scene.sensors["tiled_camera"] = self._tiled_camera
         # add contact sensor
         self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
         self.scene.sensors["contact_sensor"] = self._contact_sensor
+
+        # stage = omni.usd.get_context().get_stage()
+        # # add semantics for in-hand cube
+        # prim = stage.GetPrimAtPath("/World/envs/env_0/person")
+        # sem = Semantics.SemanticsAPI.Apply(prim, "Semantics")
+        # sem.CreateSemanticTypeAttr()
+        # sem.CreateSemanticDataAttr()
+        # sem.GetSemanticTypeAttr().Set("class")
+        # sem.GetSemanticDataAttr().Set("enemy")
 
     def low_policy_action(self):
         low_policy_obs = torch.cat(

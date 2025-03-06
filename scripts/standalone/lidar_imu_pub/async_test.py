@@ -25,7 +25,7 @@ Before starting Isaac Sim
 
 
 import argparse
-
+import asyncio
 from isaaclab.app import AppLauncher
 
 # add argparse arguments
@@ -59,6 +59,9 @@ from isaaclab_tasks.manager_based.locomotion.velocity.config.h1.rough_env_cfg im
 from lidar import add_head_lidar
 from ros import SensorPubNode
 from isaaclab.devices import Se3Keyboard
+
+MAX_CONCURRENT_TASKS = int(os.cpu_count())
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
 lin_vel_x = 0.0
 lin_vel_y = 0.0
@@ -108,7 +111,7 @@ def stop():
     lin_vel_y = 0.0
     ang_vel_z = 0.0
 
-def main():
+async def main():
     """Main function."""
     global lin_vel_x
     global lin_vel_y

@@ -107,9 +107,9 @@ class H1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.dof_acc_l2.weight = -1.25e-7
 
         # Commands
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)
 
         # terminations
         self.terminations.base_contact.params["sensor_cfg"].body_names = ".*torso_link"
@@ -155,6 +155,7 @@ class H1RoughEnvCfg_PLAY_ROS(H1RoughEnvCfg):
         self.scene.num_envs = 10
         self.scene.env_spacing = 5.0
         self.episode_length_s = 10.0
+        self.sim.render_interval = 1
         # spawn the robot randomly in the grid (instead of their terrain levels)
         self.scene.terrain.max_init_terrain_level = None
         # reduce the number of terrains to save memory

@@ -126,7 +126,7 @@ class KayaTennisEnvCfg(DirectRLEnvCfg):
     )
 
     # scene
-    scene: TennisSceneCfg = TennisSceneCfg(num_envs=4096, env_spacing=8.0, replicate_physics=False)
+    scene: TennisSceneCfg = TennisSceneCfg(num_envs=4096, env_spacing=3.0, replicate_physics=False)
     # robot
     action_scale = 20.0
     # reward scales
@@ -249,8 +249,8 @@ class KayaTennisEnv(DirectRLEnv):
         distance_to_goal_mapped = 1 - torch.tanh(0.25 * distance_to_goal)
         # distance_to_goal_mapped = distance_to_goal < 0.5
         
-        # reset_ball = torch.logical_or(self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.08, self._is_reach_goal)
-        reset_ball = self._is_reach_goal
+        reset_ball = torch.logical_or(self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.08, self._is_reach_goal)
+        # reset_ball = self._is_reach_goal
         reset_ball_ids = reset_ball.nonzero(as_tuple=False).squeeze(-1)
         # print("reset_ball_ids:", reset_ball_ids)
         if len(reset_ball_ids) > 0:
@@ -283,7 +283,8 @@ class KayaTennisEnv(DirectRLEnv):
         # max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
         
         # died = torch.logical_or(distance_to_orin > 5.0, max_net_contact_forces > 0.1)
-        died = torch.logical_or(distance_to_orin > 5.0, self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.05)
+        died = distance_to_orin > 5.0
+        # died = torch.logical_or(distance_to_orin > 5.0, self._tennis_ball_rigid.data.root_pos_w[:, 2] < 0.05)
         # died = torch.logical_or(self._robot.data.root_pos_w[:, 2] < 0.5, self._robot.data.root_pos_w[:, 2] > 15.0)
         # time_out = torch.logical_or(time_out, self._is_reach_goal)
         return died, time_out

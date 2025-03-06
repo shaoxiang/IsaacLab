@@ -149,6 +149,8 @@ def spawn_lidar(
     translation: tuple[float, float, float] | None = None,
     orientation: tuple[float, float, float, float] | None = None,
 ) -> Usd.Prim:
+    
+    # only for non headless mode
     _, sensor = omni.kit.commands.execute(
         "IsaacSensorCreateRtxLidar",
         path=prim_path,
@@ -157,4 +159,12 @@ def spawn_lidar(
         translation=translation,
         orientation=Gf.Quatd(orientation[0], Gf.Vec3d(orientation[1], orientation[2], orientation[3])),
     )
+
+    # from isaacsim.sensors.rtx import LidarRtx
+    # sensor = LidarRtx(
+    #     prim_path=prim_path,
+    #     position=translation,
+    #     config_file_name=cfg.lidar_type,
+    # )
+
     return sensor

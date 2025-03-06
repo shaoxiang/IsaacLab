@@ -5,22 +5,18 @@ python scripts/tutorials/00_sim/launch_app.py
 
 python scripts/tutorials/03_envs/create_cube_base_env.py --num_envs 8
 python scripts/tutorials/03_envs/policy_inference_in_usd.py --checkpoint assets/Policies/Isaac-Velocity-Rough-H1-v0/policy.pt
+python scripts/tutorials/03_envs/policy_inference_with_keyboard.py --checkpoint assets/Policies/Isaac-Velocity-Rough-H1-v0/policy.pt
 
 python scripts/tutorials/01_assets/run_rigid_object.py
 python scripts/tutorials/01_assets/run_articulation.py
-
+python scripts/tutorials/01_assets/run_deformable_object.py
+python scripts/tutorials/01_assets/run_tennis_ball.py
 python scripts/tutorials/04_sensors/add_sensors_on_robot.py --enable_cameras
 python scripts/tutorials/04_sensors/run_ray_caster.py
 python scripts/tutorials/04_sensors/run_ray_caster_camera.py
 
 ## demos
 python scripts/demos/arms.py
-python scripts/demos/multi_asset.py
-python scripts/tutorials/00_sim/spawn_prims.py
-
-python scripts/tutorials/01_assets/run_deformable_object.py
-python scripts/tutorials/01_assets/run_rigid_object.py
-python scripts/tutorials/01_assets/run_tennis_ball.py
 python scripts/demos/multi_asset.py
 python scripts/demos/multi_asset_more.py
 
@@ -70,13 +66,10 @@ python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-Velocity-Rough
 
 ## quadcopter env set
 python scripts/my_test/quadcopter_camera.py
-
 python scripts/demos/quadcopter.py
-
 python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-Franka-Cabinet-Direct-v0
 
 ### Cartpole
-
 python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-Cartpole-Direct-v0
 python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-Cartpole-RGB-Camera-Direct-v0 --headless --enable_cameras --video --num_envs 512
 python scripts/reinforcement_learning/skrl/train.py --task=Isaac-Cartpole-Depth-Camera-Direct-v0 --headless --enable_cameras --num_envs 32
@@ -89,7 +82,6 @@ python scripts/reinforcement_learning/rl_games/play.py --task=Isaac-Cartpole-RGB
 python -m tensorboard.main --logdir logs/rl_games/cartpole_camera_direct
 
 ### Jetbot
-
 python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-Jetbot-Direct-v0
 
 ### 无人机
@@ -143,7 +135,8 @@ python -m tensorboard.main --logdir logs/skrl/kaya_tennis_td3/2025-02-12_17-06-0
 ### Agilex Robotics
 python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-ScoutMini-Direct-v0 --num_envs 4096 --headless
 
-python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-ScoutMini-AV-v0 --num_envs 4096 --headless
+python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-ScoutMini-AV-v0 --num_envs 4096 --enable_cameras --headless
+python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-ScoutMini-AV-v0 --num_envs 16 --enable_cameras
 
 #### Multi GPU Train
 python -m torch.distributed.run --nnodes=1 --nproc_per_node=3 scripts/reinforcement_learning/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 4096 --enable_cameras --headless --distributed
@@ -246,6 +239,10 @@ python scripts/tutorials/06_ros/camera.py --enable_cameras
 #### lifelong_slam
 python .\source\standalone\lidar_slam\play.py --task=Isaac-Quadcopter-Direct-Lidar-v0 --load_run 2024-10-22_13-08-21 --checkpoint model_1000.pt
 
+python scripts/standalone/lidar_imu_pub/main.py --checkpoint assets/Policies/Isaac-Velocity-Rough-H1-v0/policy.pt
+
+ros2 bag record -o full_warehouse.bag /imu /point_cloud2
+
 ### 大模型机器人
 
 python -m tensorboard.main --logdir logs/eureka/Isaac-Cartpole-Direct-v0/2024-12-05_11-22-51
@@ -333,6 +330,8 @@ pip install torch==2.4.0 torchvision==0.19.0 --index-url https://download.pytorc
 或者：
 pip install torch==2.4.0+cu118 torchvision==0.19.0+cu118 -f https://download.pytorch.org/whl/torch
 
+pip install torch==2.5.1+cu121 --use-deprecated=legacy-resolver  --no-cache-dir -f https://mirrors.aliyun.com/pytorch-wheels/cu121
+
 ### YOLO
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple ultralytics --no-deps
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple onnxruntime-gpu --no-deps
@@ -379,6 +378,17 @@ conda activate my_labv2
 ```
 
 #### tips
+* anaconda unbuntu install
+```
+wget -c 'https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/Anaconda3-2024.10-1-Linux-x86_64.sh' -P ~/Downloads --user-agent="Mozilla/5.0 (X11;U;Linux i686;en-US;rv:1.9.0.3) Geco/2008092416 Firefox/3.0.3"
+
+or
+
+wget https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh
+
+bash Anaconda3-2024.10-1-Linux-x86_64.sh
+```
+
 * conda 换源
 
 ```bash
@@ -408,7 +418,22 @@ custom_channels:
 conda env remove --name <environment_name>
 ```
 
-* ROS 配置
+* ROS 配置，使用内部Isaac Sim ROS
+```
+export isaac_sim_package_path=$HOME/omniverse/isaac-sim-4.5.0
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$isaac_sim_package_path/exts/isaacsim.ros2.bridge/humble/lib
 ```
 
+* `GLIBCXX_3.4.29' not found
+```
+[ERROR] [1740746501.997882954] [rcl]: Error getting RMW implementation identifier / RMW implementation not installed (expected identifier of 'rmw_fastrtps_cpp'), with error message 'failed to load shared library 'librmw_fastrtps_cpp.so' due to dlopen error: /home/dell/anaconda3/envs/isaac_labv2/bin/../lib/libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by /opt/ros/humble/lib/libfastrtps.so.2.6), at ./src/shared_library.c:99, at ./src/functions.cpp:65', exiting with 1., at ./src/rcl/rmw_implementation_identifier_check.c:139
+
+当你尝试在Linux上运行Python程序或启动Anaconda环境时，可能会遇到ImportError: /home/anaconda3/lib/libstdc++.so.6: versionGLIBCXX_3.4.29’ not found的错误。这个错误通常表明你的系统或Anaconda环境中的libstdc++.so.6`库的版本与Python或其某个库所需的版本不兼容。
+
+sudo find / -name libstdc++.so.6
+
+strings /home/dell/anaconda3/envs/isaac_labv2/lib/libstdc++.so.6 | grep GLIBCXX
+
+ln -sf /home/dell/anaconda3/lib/libstdc++.so.6 /home/dell/anaconda3/envs/isaac_labv2/lib/libstdc++.so.6 
 ```

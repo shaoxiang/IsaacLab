@@ -29,3 +29,6 @@ from .kaya import *
 from .deformable_objects import *
 from .duck import *
 from .agilex import *
+
+from .custom_cartpole import *
+from .leatherback import *

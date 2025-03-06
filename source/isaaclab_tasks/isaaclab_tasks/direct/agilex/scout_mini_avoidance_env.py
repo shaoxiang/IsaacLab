@@ -97,7 +97,7 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
     )
 
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing = 4.0, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing = 5.0, replicate_physics=True)
     # robot
     robot: ArticulationCfg = SCOUT_MINI_CFG.replace(prim_path="/World/envs/env_.*/Robot")
 
@@ -133,8 +133,12 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
     lidar = RTXRayCasterCfg(
         prim_path="/World/envs/env_.*/Robot/base_link/lidar",
         offset=RTXRayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.1)),
-        spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.SLAMTEC_RPLIDAR_S2E)
+        # spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.SLAMTEC_RPLIDAR_S2E)
+        spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.SICK_TIM781) 
     )
+
+    # SICK_TIM781
+    # info: RTXRayCasterInfo(numChannels=811, numEchos=1, numReturnsPerScan=811, renderProductPath='/Render/OmniverseKit/HydraTextures/Replicator_01', ticksPerScan=1)
 
     # object collection
     obstacle_cfg: RigidObjectCollectionCfg = RigidObjectCollectionCfg(
@@ -150,34 +154,75 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
                     mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
                     collision_props=sim_utils.CollisionPropertiesCfg(),
                 ),
-                init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -0.5, 2.0)),
+                init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 2.0, 0.5)),
             ),
             "obs_B": RigidObjectCfg(
                 prim_path="/World/envs/env_.*/Obs_B",
                 spawn=sim_utils.CuboidCfg(
                     size=(0.5, 0.5, 0.5),
-                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
                     rigid_props=sim_utils.RigidBodyPropertiesCfg(
                         solver_position_iteration_count=4, solver_velocity_iteration_count=0
                     ),
                     mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
                     collision_props=sim_utils.CollisionPropertiesCfg(),
                 ),
-                init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.5, 2.0)),
+                init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 0.0, 0.5)),
             ),
             "obs_C": RigidObjectCfg(
                 prim_path="/World/envs/env_.*/Obs_C",
                 spawn=sim_utils.ConeCfg(
                     radius=0.3,
                     height=0.5,
-                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
                     rigid_props=sim_utils.RigidBodyPropertiesCfg(
                         solver_position_iteration_count=4, solver_velocity_iteration_count=0
                     ),
                     mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
                     collision_props=sim_utils.CollisionPropertiesCfg(),
                 ),
-                init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.0, 2.0)),
+                init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, -2.0, 0.5)),
+            ),
+            "obs_D": RigidObjectCfg(
+                prim_path="/World/envs/env_.*/Obs_D",
+                spawn=sim_utils.CylinderCfg(
+                    radius=0.35,
+                    height=0.8,
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 1.0), metallic=0.2),
+                    rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                        solver_position_iteration_count=4, solver_velocity_iteration_count=0
+                    ),
+                    mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+                    collision_props=sim_utils.CollisionPropertiesCfg(),
+                ),
+                init_state=RigidObjectCfg.InitialStateCfg(pos=(-2.0, -2.0, 0.5)),
+            ),
+            "obs_E": RigidObjectCfg(
+                prim_path="/World/envs/env_.*/Obs_E",
+                spawn=sim_utils.CapsuleCfg(
+                    radius=0.35,
+                    height=0.8,
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 0.0), metallic=0.2),
+                    rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                        solver_position_iteration_count=4, solver_velocity_iteration_count=0
+                    ),
+                    mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+                    collision_props=sim_utils.CollisionPropertiesCfg(),
+                ),
+                init_state=RigidObjectCfg.InitialStateCfg(pos=(-2.0, 0.0, 0.5)),
+            ),
+            "obs_F": RigidObjectCfg(
+                prim_path="/World/envs/env_.*/Obs_F",
+                spawn=sim_utils.SphereCfg(
+                    radius=0.3,
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0), metallic=0.2),
+                    rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                        solver_position_iteration_count=4, solver_velocity_iteration_count=0
+                    ),
+                    mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+                    collision_props=sim_utils.CollisionPropertiesCfg(),
+                ),
+                init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, -2.0, 0.5)),
             ),
         }
     )
@@ -275,19 +320,17 @@ class ScoutMiniAVEnv(DirectRLEnv):
             self._robot.data.root_state_w[:, :3], self._robot.data.root_state_w[:, 3:7], self._desired_pos_w
         )
 
-        # info: RTXRayCasterInfo(numChannels=1, numEchos=1, numReturnsPerScan=3200, renderProductPath='/Render/OmniverseKit/HydraTextures/Replicator_04', ticksPerScan=3200)
-        
         for key, value in self._lidar.data.items():
             print(f"Lidar data has key: {key}")
             for lidar_data in value:
-                print("distance:", lidar_data.distance.shape, lidar_data.distance)
-                print("azimuth:", lidar_data.azimuth.shape, lidar_data.azimuth)
-                print("elevation:", lidar_data.elevation.shape, lidar_data.elevation)
-                print("beamId:", lidar_data.beamId.shape, lidar_data.beamId)
-                print("index:", lidar_data.index.shape, lidar_data.index)
-                print("normal:", lidar_data.normal.shape, lidar_data.normal)
-                print("info:", lidar_data.info)
-                # print("data:", lidar_data.data.shape, lidar_data.data)
+                print("distance:", lidar_data.distance.shape)
+                # print("distance:", lidar_data.distance.shape, lidar_data.distance)
+                # print("azimuth:", lidar_data.azimuth.shape, lidar_data.azimuth)
+                # print("elevation:", lidar_data.elevation.shape, lidar_data.elevation)
+                # print("beamId:", lidar_data.beamId.shape, lidar_data.beamId)
+                # print("index:", lidar_data.index.shape, lidar_data.index)
+                # print("normal:", lidar_data.normal.shape, lidar_data.normal)
+                # print("info:", lidar_data.info)
 
         obs = torch.cat(
             [
