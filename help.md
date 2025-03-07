@@ -138,6 +138,9 @@ python scripts/reinforcement_learning/rsl_rl/train.py --task=Isaac-ScoutMini-Dir
 python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-ScoutMini-AV-v0 --num_envs 4096 --enable_cameras --headless
 python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-ScoutMini-AV-v0 --num_envs 16 --enable_cameras
 
+python scripts/reinforcement_learning/skrl/train.py --task=Isaac-ScoutMini-AV-v0 --num_envs 512 --enable_cameras --livestream 2
+python -m tensorboard.main --logdir logs/skrl/scout_mini_va/2025-03-07_17-33-48_ppo_torch
+
 #### Multi GPU Train
 python -m torch.distributed.run --nnodes=1 --nproc_per_node=3 scripts/reinforcement_learning/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 4096 --enable_cameras --headless --distributed
 

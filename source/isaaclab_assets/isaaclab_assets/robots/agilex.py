@@ -19,7 +19,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 SCOUT_MINI_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/AgilexRobotics/scout_mini/scout_mini.usd",
+        usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/AgilexRobotics/scout_mini/scout_mini_range_sensor.usd",
         activate_contact_sensors=True,
     ),
     init_state=ArticulationCfg.InitialStateCfg(

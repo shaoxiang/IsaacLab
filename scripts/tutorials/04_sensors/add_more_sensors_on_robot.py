@@ -124,6 +124,24 @@ class SensorsSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.VELODYNE_VLS128)
     )
 
+    # physx_lidar = RangeSensorCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base_link/Lidar",
+    #     # update_period=0.025,  # Update rate of 40Hz
+    #     # data_types=["point_cloud"],  # Assuming the LiDAR generates point cloud data
+    #     horizontal_fov=360.0,  # Horizontal field of view of 270 degrees
+    #     horizontal_resolution=0.4,  # Horizontal resolution of 0.5 degrees
+    #     max_range=30.0,  # Maximum range of 30 meters
+    #     min_range=0.020,  # Minimum range of 0.1 meters
+    #     rotation_rate=0.0,  # Rotation rate of 0.0 radians per second
+    #     offset=RangeSensorCfg.OffsetCfg(
+    #         pos=(0.0, 0.0, 0.01),  # Example position offset from the robot base
+    #         rot=(1.0, 0.0, 0.0, 0.0),  # Example rotation offset; no rotation in this case
+    #         convention="ros"  # Frame convention
+    #     ),
+    #     draw_lines=False,
+    #     draw_points=True,
+    # )
+
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     """Run the simulator."""
     # Define simulation stepping
@@ -191,8 +209,14 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
             print(f"Lidar data has key: {key}")
             for lidar_data in value:
                 print(f"Data for {key}: {lidar_data.data}")
-                print(f"Distance for {key}: {lidar_data.distance}")
+                print(f"Distance for {key}: {lidar_data.distance.shape, lidar_data.distance}")
                 print(f"Intensity for {key}: {lidar_data.intensity}")
+                print("azimuth:", lidar_data.azimuth.shape, lidar_data.azimuth)
+                print("elevation:", lidar_data.elevation.shape, lidar_data.elevation)
+                print("beamId:", lidar_data.beamId.shape, lidar_data.beamId)
+                print("index:", lidar_data.index.shape, lidar_data.index)
+                print("normal:", lidar_data.normal.shape, lidar_data.normal)
+                print("info:", lidar_data.info)
 
 def main():
     """Main function."""

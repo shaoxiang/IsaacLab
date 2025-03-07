@@ -66,7 +66,6 @@ class UAVControlEnvCfg(DirectRLEnvCfg):
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 100,
         render_interval=decimation,
-        disable_contact_processing=True,
         enable_scene_query_support = True,
         use_fabric=True, 
         physics_material=sim_utils.RigidBodyMaterialCfg(

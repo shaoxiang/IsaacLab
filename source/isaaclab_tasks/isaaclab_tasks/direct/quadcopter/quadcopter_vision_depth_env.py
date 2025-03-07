@@ -61,7 +61,6 @@ class QuadcopterVisionDepthEnvCfg(DirectRLEnvCfg):
     # simulation
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 100,
-        disable_contact_processing=True,
         physics_material=sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="multiply",
             restitution_combine_mode="multiply",

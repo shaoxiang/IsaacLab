@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import gymnasium as gym
 import torch
+import random
+import math
 
 import isaaclab.sim as sim_utils
 from isaaclab.envs import DirectRLEnv, DirectRLEnvCfg
@@ -19,6 +21,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.math import subtract_frame_transforms
 from isaaclab.sensors import TiledCamera, TiledCameraCfg, ContactSensor, ContactSensorCfg
 from isaaclab.sensors.ray_caster import RayCaster, RayCasterCfg, patterns, RTXRayCasterCfg, RTXRayCaster
+from isaaclab.sensors import RangeSensorCfg,RangeSensor
 from isaaclab.assets import (
     Articulation,
     ArticulationCfg,
@@ -61,7 +64,6 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
     episode_length_s = 20.0
     decimation = 2
     action_space = 2
-    observation_space = 15
     state_space = 0
     debug_vis = True
 
@@ -71,7 +73,6 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
     sim: SimulationCfg = SimulationCfg(
         dt=1 / 100,
         render_interval=decimation,
-        disable_contact_processing=True,
         enable_scene_query_support = True,
         use_fabric=True, 
         physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -102,16 +103,16 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
     robot: ArticulationCfg = SCOUT_MINI_CFG.replace(prim_path="/World/envs/env_.*/Robot")
 
     # camera
-    tiled_camera: TiledCameraCfg = TiledCameraCfg(
-        prim_path="/World/envs/env_.*/Robot/base_link/Camera",
-        offset=TiledCameraCfg.OffsetCfg(pos=(0.186, 0.0, 0.0625), rot=(0.5,0.5,-0.5,-0.5), convention="opengl"),
-        data_types=["rgb", "depth"],
-        spawn=sim_utils.PinholeCameraCfg(
-            focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
-        ),
-        width=320,
-        height=240,
-    )
+    # tiled_camera: TiledCameraCfg = TiledCameraCfg(
+    #     prim_path="/World/envs/env_.*/Robot/base_link/Camera",
+    #     offset=TiledCameraCfg.OffsetCfg(pos=(0.186, 0.0, 0.0625), rot=(0.5,0.5,-0.5,-0.5), convention="opengl"),
+    #     data_types=["rgb", "depth"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
+    #     ),
+    #     width=320,
+    #     height=240,
+    # )
 
     contact_sensor_base_link: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/base_link", update_period=0.01, history_length=3, debug_vis=False
@@ -130,11 +131,30 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
     #     max_distance=10.0
     # )
 
-    lidar = RTXRayCasterCfg(
-        prim_path="/World/envs/env_.*/Robot/base_link/lidar",
-        offset=RTXRayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.1)),
-        # spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.SLAMTEC_RPLIDAR_S2E)
-        spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.SICK_TIM781) 
+    # lidar = RTXRayCasterCfg(
+    #     prim_path="/World/envs/env_.*/Robot/base_link/lidar",
+    #     offset=RTXRayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.1)),
+    #     # spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.SLAMTEC_RPLIDAR_S2E)
+    #     spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.SICK_TIM781),
+    #     debug_vis=True,
+    # )
+
+    physx_lidar = RangeSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/base_link/Lidar",
+        # update_period=0.025,  # Update rate of 40Hz
+        # data_types=["point_cloud"],  # Assuming the LiDAR generates point cloud data
+        horizontal_fov=360.0,  # Horizontal field of view of 270 degrees
+        horizontal_resolution=0.4,  # Horizontal resolution of 0.5 degrees
+        max_range=30.0,  # Maximum range of 30 meters
+        min_range=0.020,  # Minimum range of 0.1 meters
+        rotation_rate=0.0,  # Rotation rate of 0.0 radians per second
+        offset=RangeSensorCfg.OffsetCfg(
+            pos=(0.0, 0.0, 0.01),  # Example position offset from the robot base
+            rot=(1.0, 0.0, 0.0, 0.0),  # Example rotation offset; no rotation in this case
+            convention="ros"  # Frame convention
+        ),
+        draw_lines=False,
+        draw_points=True,
     )
 
     # SICK_TIM781
@@ -237,6 +257,21 @@ class ScoutMiniAVEnvCfg(DirectRLEnvCfg):
     action_rate_reward_scale = -0.01
     goal_reached_reward_scale = 20.0
     delta_goal_reward_scale = 50.0
+    # other
+    lidar_points_num = 811
+    max_perception_distance = 10.0
+
+    # observation_space = {
+    #     "robot-state": 15,
+    #     "lidar": lidar_points_num,
+    # }
+
+    observation_space = {
+        "robot-state": 15,
+        "lidar": 900,
+    }
+
+    # observation_space = 15
 
 class ScoutMiniAVEnv(DirectRLEnv):
     cfg: ScoutMiniAVEnvCfg
@@ -284,13 +319,17 @@ class ScoutMiniAVEnv(DirectRLEnv):
         self.scene.articulations["robot"] = self._robot
         self._contact_sensor_base_link = ContactSensor(self.cfg.contact_sensor_base_link)
         self.scene.sensors["contact_sensor_base_link"] = self._contact_sensor_base_link
-        self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
-        self.scene.sensors["tiled_camera"] = self._tiled_camera
+        # self._tiled_camera = TiledCamera(self.cfg.tiled_camera)
+        # self.scene.sensors["tiled_camera"] = self._tiled_camera
         # self._lidar_scanner = RayCaster(self.cfg.lidar_scanner)
         # self.scene.sensors["lidar_scanner"] = self._lidar_scanner
-        # add lidar
-        self._lidar = RTXRayCaster(self.cfg.lidar)
-        self.scene.sensors["lidar"] = self._lidar
+        # add rtx lidar
+        # self._lidar = RTXRayCaster(self.cfg.lidar)
+        # self.scene.sensors["lidar"] = self._lidar
+
+        # add physX lidar
+        self._physx_lidar = RangeSensor(self.cfg.physx_lidar)
+        self.scene.sensors["physx_lidar"] = self._physx_lidar
 
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
@@ -320,19 +359,31 @@ class ScoutMiniAVEnv(DirectRLEnv):
             self._robot.data.root_state_w[:, :3], self._robot.data.root_state_w[:, 3:7], self._desired_pos_w
         )
 
-        for key, value in self._lidar.data.items():
-            print(f"Lidar data has key: {key}")
-            for lidar_data in value:
-                print("distance:", lidar_data.distance.shape)
-                # print("distance:", lidar_data.distance.shape, lidar_data.distance)
-                # print("azimuth:", lidar_data.azimuth.shape, lidar_data.azimuth)
-                # print("elevation:", lidar_data.elevation.shape, lidar_data.elevation)
-                # print("beamId:", lidar_data.beamId.shape, lidar_data.beamId)
-                # print("index:", lidar_data.index.shape, lidar_data.index)
-                # print("normal:", lidar_data.normal.shape, lidar_data.normal)
-                # print("info:", lidar_data.info)
+        # RTX Lidar
+        # distances = []
+        # for key, value in self._lidar.data.items():
+        #     lidar_data = value[0].distance 
+        #     if lidar_data.shape == torch.Size([self.cfg.lidar_points_num]):
+        #         # print("distance:", lidar_data.shape)
+        #         distances.append(lidar_data)
+        #     elif lidar_data.shape == torch.Size([0]):
+        #         distances.append(torch.zeros((self.cfg.lidar_points_num)))
+        #     else:
+        #         distance = self.cfg.max_perception_distance * torch.ones(self.cfg.lidar_points_num)
+        #         distance[value[0].index.long()] = lidar_data
+        #         # print("distance:", distance, distance.shape)
+        #         distances.append(distance)
+        #         # print("index:", value[0].index.shape, value[0].index)
+       
+        # distance_combined_tensor = torch.stack(distances, dim=0)
+        # distance_combined_tensor_process = torch.clamp(distance_combined_tensor, max=self.cfg.max_perception_distance)
 
-        obs = torch.cat(
+        # PhysX Lidar
+        # print("depth:", self._physx_lidar.data.output["depth"], self._physx_lidar.data.output["depth"].shape)
+        # print("linear_depth:", self._physx_lidar.data.output["linear_depth"], self._physx_lidar.data.output["linear_depth"].shape)
+        # print("azimuth:", self._physx_lidar.data.output["azimuth"], self._physx_lidar.data.output["azimuth"].shape)
+        
+        robot_state = torch.cat(
             [
                 self._robot.data.root_lin_vel_b,
                 self._robot.data.root_ang_vel_b,
@@ -343,7 +394,25 @@ class ScoutMiniAVEnv(DirectRLEnv):
             ],
             dim=-1,
         )
-        observations = {"policy": obs}
+
+        # print("robot_state:", robot_state.shape, distance_combined_tensor_process.shape)
+
+        # observations = {
+        #     "policy": {
+        #         "robot-state": robot_state,
+        #         "lidar": distance_combined_tensor_process.to(self.device),
+        #     }
+        # }
+        
+        # observations = {"policy": robot_state}
+
+        observations = {
+            "policy": {
+                "robot-state": robot_state,
+                "lidar": self._physx_lidar.data.output["linear_depth"],
+            }
+        }
+
         return observations
 
     def _get_rewards(self) -> torch.Tensor:
@@ -357,7 +426,7 @@ class ScoutMiniAVEnv(DirectRLEnv):
         net_contact_forces = self._contact_sensor_base_link.data.net_forces_w_history
         max_net_contact_forces, _ = torch.max(net_contact_forces.view(net_contact_forces.size(0), -1), dim=1)
         self._collision = max_net_contact_forces > 3.0
-        print("max_net_contact_forces:", max_net_contact_forces)
+        # print("max_net_contact_forces:", max_net_contact_forces)
 
         # action rate
         action_rate = torch.sum(torch.square(self._actions - self._previous_actions), dim=1)
@@ -392,7 +461,13 @@ class ScoutMiniAVEnv(DirectRLEnv):
         return died, time_out
     
     def reset_goal(self, env_ids: torch.Tensor | None):
-        self._desired_pos_w[env_ids, :2] = torch.zeros_like(self._desired_pos_w[env_ids, :2]).uniform_(-20.0, 20.0)
+        phi = random.uniform(0, math.pi)  
+        theta = random.uniform(0, 2*torch.pi)
+        radius = random.uniform(3.0, 6.0)
+        ball_x = radius * math.sin(phi) * math.cos(theta)  
+        ball_y = radius * math.sin(phi) * math.sin(theta)  
+        self._desired_pos_w[env_ids, 0] = ball_x
+        self._desired_pos_w[env_ids, 1] = ball_y
         self._desired_pos_w[env_ids, :2] += self._terrain.env_origins[env_ids, :2]
         self._desired_pos_w[env_ids, 2] = torch.zeros_like(self._desired_pos_w[env_ids, 2])
         self._previous_dist_to_goal[env_ids] = torch.linalg.norm(self._desired_pos_w[env_ids] - self._robot.data.root_pos_w[env_ids], dim=1)
@@ -429,7 +504,13 @@ class ScoutMiniAVEnv(DirectRLEnv):
         self._previous_actions[env_ids] = 0.0
         self._is_goal_reached[env_ids] &= False
         # Sample new commands
-        self._desired_pos_w[env_ids, :2] = torch.zeros_like(self._desired_pos_w[env_ids, :2]).uniform_(-20.0, 20.0)
+        phi = random.uniform(0, math.pi)  
+        theta = random.uniform(0, 2*torch.pi)
+        radius = random.uniform(3.0, 6.0)
+        ball_x = radius * math.sin(phi) * math.cos(theta)  
+        ball_y = radius * math.sin(phi) * math.sin(theta)  
+        self._desired_pos_w[env_ids, 0] = ball_x
+        self._desired_pos_w[env_ids, 1] = ball_y
         self._desired_pos_w[env_ids, :2] += self._terrain.env_origins[env_ids, :2]
         self._desired_pos_w[env_ids, 2] = torch.zeros_like(self._desired_pos_w[env_ids, 2])
         # Reset robot state
