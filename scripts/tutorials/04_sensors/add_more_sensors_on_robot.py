@@ -51,6 +51,7 @@ from isaaclab.utils import configclass
 # Pre-defined configs
 ##
 from isaaclab_assets.robots.anymal import ANYMAL_C_CFG, ANYMAL_LIDAR_CFG  # isort: skip
+from isaaclab.sensors import RangeSensor, RangeSensorCfg
 
 @configclass
 class SensorsSceneCfg(InteractiveSceneCfg):
@@ -124,8 +125,8 @@ class SensorsSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.LidarCfg(lidar_type=sim_utils.LidarCfg.LidarType.VELODYNE_VLS128)
     )
 
-    # physx_lidar = RangeSensorCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/base_link/Lidar",
+    # range_sensor = RangeSensorCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base_link/range_sensor",
     #     # update_period=0.025,  # Update rate of 40Hz
     #     # data_types=["point_cloud"],  # Assuming the LiDAR generates point cloud data
     #     horizontal_fov=360.0,  # Horizontal field of view of 270 degrees
@@ -217,6 +218,14 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
                 print("index:", lidar_data.index.shape, lidar_data.index)
                 print("normal:", lidar_data.normal.shape, lidar_data.normal)
                 print("info:", lidar_data.info)
+        print("-------------------------------")
+        # print(scene["range_sensor"])
+        # print(scene["range_sensor"].data.output["azimuth"].shape)
+        # print("-------------------------------")
+        # print("depth:", self._physx_lidar.data.output["depth"], self._physx_lidar.data.output["depth"].shape)
+        # print("linear_depth:", self._physx_lidar.data.output["linear_depth"], self._physx_lidar.data.output["linear_depth"].shape)
+        # print("azimuth:", self._physx_lidar.data.output["azimuth"], self._physx_lidar.data.output["azimuth"].shape)
+        
 
 def main():
     """Main function."""

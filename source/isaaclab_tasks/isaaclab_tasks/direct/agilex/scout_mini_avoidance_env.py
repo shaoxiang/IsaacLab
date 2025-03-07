@@ -21,7 +21,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.math import subtract_frame_transforms
 from isaaclab.sensors import TiledCamera, TiledCameraCfg, ContactSensor, ContactSensorCfg
 from isaaclab.sensors.ray_caster import RayCaster, RayCasterCfg, patterns, RTXRayCasterCfg, RTXRayCaster
-from isaaclab.sensors import RangeSensorCfg,RangeSensor
+from isaaclab.sensors import RangeSensor, RangeSensorCfg
 from isaaclab.assets import (
     Articulation,
     ArticulationCfg,
