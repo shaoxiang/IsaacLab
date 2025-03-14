@@ -123,6 +123,14 @@ Sphere_MARKER_CFG = VisualizationMarkersCfg(
     }
 )
 
+Person_MARKER_CFG = VisualizationMarkersCfg(
+    markers={
+        "people": sim_utils.UsdFileCfg(
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/People/Characters/F_Business_02/F_Business_02.usd",
+        )
+    }
+)
+
 """Configuration for the cuboid marker."""
 
 POSITION_GOAL_MARKER_CFG = VisualizationMarkersCfg(

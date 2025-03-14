@@ -139,7 +139,9 @@ python scripts/reinforcement_learning/rl_games/train.py --task=Isaac-ScoutMini-A
 python scripts/reinforcement_learning/rsl_rl/play.py --task=Isaac-ScoutMini-AV-v0 --num_envs 16 --enable_cameras
 
 python scripts/reinforcement_learning/skrl/train.py --task=Isaac-ScoutMini-AV-v0 --num_envs 512 --enable_cameras --livestream 2
-python -m tensorboard.main --logdir logs/skrl/scout_mini_va/2025-03-07_17-33-48_ppo_torch
+python scripts/reinforcement_learning/skrl/train.py --task=Isaac-ScoutMini-AV-Yolo-v0 --num_envs 128 --enable_cameras --livestream 2
+
+python -m tensorboard.main --logdir logs/skrl/scout_mini_va/2025-03-10_12-14-16_ppo_torch
 
 #### Multi GPU Train
 python -m torch.distributed.run --nnodes=1 --nproc_per_node=3 scripts/reinforcement_learning/skrl/train.py --task=Isaac-Kaya-VA-v0 --num_envs 4096 --enable_cameras --headless --distributed
@@ -212,8 +214,8 @@ python scripts/standalone/lidar_imu_pub/main.py --checkpoint assets/Policies/Isa
 python scripts/reinforcement_learning/skrl/train.py --task=Isaac-Humanoid-AMP-Dance-Direct-v0 --headless --algorithm AMP
 python scripts/reinforcement_learning/skrl/train.py --task=Isaac-Humanoid-AMP-Run-Direct-v0 --headless --algorithm AMP
 python scripts/reinforcement_learning/skrl/train.py --task=Isaac-Humanoid-AMP-Walk-Direct-v0 --headless --algorithm AMP
-
 python scripts/reinforcement_learning/skrl/train.py --task=Isaac-Humanoid-AMP-Dance-Direct-v0 --headless --algorithm AMP --video --video_length 200 --video_interval 10000
+python scripts/reinforcement_learning/skrl/train.py --task=Isaac-Humanoid-AMP-Walk-Rough-v0 --headless --algorithm AMP --num_envs 512
 
 python scripts/reinforcement_learning/skrl/play.py --task=Isaac-Humanoid-AMP-Dance-Direct-v0 --num_envs 32 --algorithm AMP --real-time
 python scripts/reinforcement_learning/skrl/play.py --task=Isaac-Humanoid-AMP-Run-Direct-v0 --num_envs 32 --algorithm AMP --real-time
@@ -439,4 +441,10 @@ sudo find / -name libstdc++.so.6
 strings /home/dell/anaconda3/envs/isaac_labv2/lib/libstdc++.so.6 | grep GLIBCXX
 
 ln -sf /home/dell/anaconda3/lib/libstdc++.so.6 /home/dell/anaconda3/envs/isaac_labv2/lib/libstdc++.so.6 
+```
+
+* isaac sim reset user
+To run Isaac Sim with a fresh config, use the --reset-user flag. This flag can be entered in the Extra Args section of the Isaac Sim App Selector or when running Isaac Sim in command line.
+```
+.\isaac-sim.bat --reset-user
 ```

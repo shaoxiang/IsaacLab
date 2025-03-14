@@ -34,6 +34,15 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.scout_mini_avoidance_env:ScoutMiniAVEnvCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_lidar_ppo_cfg.yaml",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:ScoutMiniAVPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="Isaac-ScoutMini-AV-Yolo-v0",
+    entry_point=f"{__name__}.scout_mini_avoidance_env:ScoutMiniAVYoloEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.scout_mini_avoidance_env:ScoutMiniAVYoloEnvCfg",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_yolo_ppo_cfg.yaml",
     },
 )
